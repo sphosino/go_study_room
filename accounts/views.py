@@ -15,7 +15,17 @@ from accounts.models import PushSubscription
 import json
 
 class IndexView(TemplateView):
-	template_name = "index.html"
+    template_name = "index.html"
+    def get_context_data(self, **kwargs):
+            # まずは親クラス（TemplateView）の標準の動きを呼び出す
+            context = super().get_context_data(**kwargs)
+
+            user = self.request.user
+            
+            if user.is_authenticated:
+                context['user_notify_setting'] = user.notify_room_create
+            
+            return context
 
 class SignupView(CreateView):
 	template_name = "signup.html"
