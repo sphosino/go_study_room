@@ -1,7 +1,7 @@
 import os
 import django
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'chat_project.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'go-room.settings')
 django.setup()
 
 from .models import ChatRoom, ChatMessage, GoBoard
