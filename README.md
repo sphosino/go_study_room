@@ -28,9 +28,9 @@ Frontend: JavaScript, HTML/CSS, Tailwind CSS
 
 ## ローカルでの起動方法
 
-bash# 仮想環境作成・有効化
-python -m venv venv
-source venv/bin/activate  # Windows: venv\\Scripts\\activate
+bash# 仮想環境作成・有効化  
+python -m venv venv  
+source venv/bin/activate    # Windows: venv\\Scripts\\activate
 
 ## パッケージインストール
 
