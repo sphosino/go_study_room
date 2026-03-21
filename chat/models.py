@@ -11,10 +11,17 @@ from django.core.files.base import ContentFile
 class ChatRoom(models.Model):
     name = models.CharField(max_length=30, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    last_updated_at = models.DateTimeField(auto_now=True)
     users = models.ManyToManyField(CustomUser, blank=True)
 
     def __str__(self):
         return f"部屋->{self.name}"
+    
+class Sockets(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    socket_id = models.CharField(max_length=255, unique=True)
+    timestamp = models.DateTimeField(auto_now=True)
+    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='sockets', blank=True, null=True)
 
 THUMBNAILSIZEX = 200
 THUMBNAILSIZEY = 200
@@ -247,7 +254,3 @@ class GoBoard(models.Model):
         #ボードに変更があったかを返す
         return success
     
-class Sockets(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    socket_id = models.CharField(max_length=255, unique=True) # ここをユニークに
-    timestamp = models.DateTimeField(auto_now=True)

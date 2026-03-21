@@ -34,6 +34,7 @@ logging.getLogger("daphne.ws_protocol").setLevel(logging.ERROR)
 GLOBAL_LOBBY, created = ChatRoom.objects.get_or_create(name='__system_lobby')
 GLOBAL_LOBBY_ID = GLOBAL_LOBBY.id
 SOCKET_TIMEOUT = 300 # 秒
+ROOM_TIMEOUT = 300 # 秒
 WORKER_INTERVAL = 40  # 秒
 _global_monitor_task = None #ワーカーのタスクを保持する変数
 
@@ -128,7 +129,7 @@ class SendMethodMixin():
 class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
 
     users = set()
-    serchsocket = {}
+    searchsocket = {}
 
     async def connect(self):
         self.user = self.scope["user"]
@@ -138,7 +139,7 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
         if self.user.is_authenticated:
             
             LobbyConsumer.users.add(self)
-            LobbyConsumer.serchsocket[self.user.account_id] = self
+            LobbyConsumer.searchsocket[self.user.account_id] = self
             logger.info(f"{self.user.account_id}がロビーに接続しましたよ")
 
             result = await manage_user_in_chatroom(self,GLOBAL_LOBBY_ID,"add")
@@ -166,10 +167,10 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
             self.close()
 
     async def disconnect(self, close_code):
-        
-        # タイムアウトチェックタスクをキャンセル
-        if hasattr(self, 'check_timeout_task'):
-            self.check_timeout_task.cancel()
+        if self.room_id:
+            await database_sync_to_async(
+                ChatRoom.objects.filter(id=self.room_id).update
+            )(last_updated_at=timezone.now())
         
         result = await manage_user_in_chatroom(self,GLOBAL_LOBBY_ID, "remove")
         user_list = [i.account_id for i in result]
@@ -187,7 +188,7 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
             self.channel_name
         )
         LobbyConsumer.users.remove(self)
-        LobbyConsumer.serchsocket.pop(self.user.account_id, None)
+        LobbyConsumer.searchsocket.pop(self.user.account_id, None)
 
     async def receive(self, text_data):
 
@@ -316,8 +317,7 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
 class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
 
     users = set()
-    serchsocket = {}
-    delete_room_task = {}
+    searchsocket = {}
 
     async def connect(self):
 
@@ -331,12 +331,7 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
             logger.info(f"{self.user}がROOM{self.room_id}に接続しました")
 
             RoomConsumer.users.add(self)
-            RoomConsumer.serchsocket[self.user.account_id] = self
-
-            #空部屋削除待ちタスクが走っていればキャンセル
-            if RoomConsumer.delete_room_task.get(self.room_id):
-                RoomConsumer.delete_room_task[self.room_id].cancel()
-                del RoomConsumer.delete_room_task[self.room_id]
+            RoomConsumer.searchsocket[self.user.account_id] = self
 
             result = await manage_user_in_chatroom(self, self.room_id,"add")
             user_list = [i.account_id for i in result]
@@ -363,30 +358,24 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
             self.close()
 
     async def disconnect(self, close_code):
-        print('DISCONNECT!!!!')
-        if (close_code != 1000) & (close_code != 1001):
-            logger.info(f"WebSocketが通常ではない切断が起きました-> CODE:{close_code}")
+        if self.room_id:
+            await database_sync_to_async(
+                ChatRoom.objects.filter(id=self.room_id).update
+            )(last_updated_at=timezone.now())
 
         result = await manage_user_in_chatroom(self, self.room_id,'remove')
-
-        if len(result) == 0:
-
-            RoomConsumer.delete_room_task[self.room_id] = asyncio.create_task(delete_room_after_timeout(self.room_id))
-
-        else:
-
-            user_list = [i.account_id for i in result]
-            await self.send_message_to_group('leave',
-                name     = self.user.account_id, #退室者名
-                user_list= user_list  #現在の入室者リスト
-            )
+        user_list = [i.account_id for i in result]
+        await self.send_message_to_group('leave',
+            name     = self.user.account_id, #退室者名
+            user_list= user_list  #現在の入室者リスト
+        )
         
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
         )
         RoomConsumer.users.remove(self)
-        RoomConsumer.serchsocket.pop(self.user.account_id, None)
+        RoomConsumer.searchsocket.pop(self.user.account_id, None)
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
@@ -475,7 +464,7 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
 
     async def p2psend_message(self, message_type, text_data):
         logger.info(f"sendp2p_message {message_type}")
-        target_socket = RoomConsumer.serchsocket.get(text_data['for'])
+        target_socket = RoomConsumer.searchsocket.get(text_data['for'])
         if target_socket:
             text_data['sender'] = self.user.account_id
             await target_socket.send_message(message_type, **text_data)
@@ -528,29 +517,6 @@ async def manage_user_in_chatroom(self, room_id, action):
     
     return await modify_user_in_chatroom()
 
-async def delete_room_after_timeout(room_id, timeout=60):
-    try:
-        logger.info(f"Starting timeout for room {room_id} with timeout={timeout} seconds")
-        await asyncio.sleep(timeout)
-        logger.info(f"Timeout complete, checking room {room_id}")
-        try:
-            room = await database_sync_to_async(ChatRoom.objects.get)(id=room_id)
-            user_count = await database_sync_to_async(room.users.count)()
-            if user_count == 0:
-                await database_sync_to_async(room.delete)()
-                logger.info(f"Room {room_id} deleted.")
-
-                if LobbyConsumer.users:
-                    await next(iter(LobbyConsumer.users)).send_message_to_group("make_room")
-            else:
-                logger.info(f"Room {room_id} still has users.")
-        except ChatRoom.DoesNotExist:
-            logger.info(f"Room {room_id} already deleted.")
-        except Exception as e:
-            logger.error(f"An error occurred: {e}")
-        logger.info('delete_room_task finished.')
-    except asyncio.CancelledError:
-        logger.info('delete_room_task cancelled!')
 
 async def user_list_update(socket, room_id, message_type):
     print("user_list_update() called.")
@@ -610,7 +576,6 @@ async def worker():
             print(f"取得ソケット数: {len(sockets)} インターバル: {WORKER_INTERVAL}秒")
             
             if not sockets:
-                print("ソケット0個 → break")
                 break
             
             print(f"{len(sockets)}個チェック開始...")
@@ -649,7 +614,23 @@ async def worker():
         except Exception as e:
             print(f"ループ{iteration}全体エラー: {e}")
             logger.error(f"Worker loop error: {e}", exc_info=True)
-        
+
+        #####空部屋削除
+        room_threshold = timezone.now() - timedelta(seconds=ROOM_TIMEOUT)
+        empty_rooms = await database_sync_to_async(list)(
+            ChatRoom.objects.filter(
+                sockets__isnull=True,
+                last_updated_at__lt=room_threshold
+            )
+        )
+        for room in empty_rooms:
+            if room.id == GLOBAL_LOBBY_ID:
+                continue
+            socket_count = await database_sync_to_async(room.sockets.count)()
+            if socket_count == 0:
+                await database_sync_to_async(room.delete)()
+        #####空部屋削除完了
+
         await asyncio.sleep(WORKER_INTERVAL)
     
     print("=== WORKER END ===")
