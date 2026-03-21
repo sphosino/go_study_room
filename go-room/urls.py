@@ -13,7 +13,6 @@ urlpatterns = [
     path('user_profile/', include("user_profile.urls")),
     path('sw.js', service_worker, name='sw'),
     path('manifest.json', manifest, name='manifest'),
-    path('accounts/', include("accounts.urls")),
     path('favicon.ico', RedirectView.as_view(url=settings.STATIC_URL + 'favicon.ico'))
 ]
 # 開発環境でメディアファイルを提供する設定

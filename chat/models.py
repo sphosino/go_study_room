@@ -246,3 +246,8 @@ class GoBoard(models.Model):
             
         #ボードに変更があったかを返す
         return success
+    
+class Sockets(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    socket_id = models.CharField(max_length=255, unique=True) # ここをユニークに
+    timestamp = models.DateTimeField(auto_now=True)

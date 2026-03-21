@@ -22,6 +22,10 @@ export async function initializeWebSocket(url){
             resolve(websocket); // WebSocketの初期化が完了したらresolveを呼ぶ
         };
         websocket.onclose = () => {
+            if (event.code === 4001){
+                console.warn('WebSocket closed by server with code 4001. Not attempting to reconnect.');
+                return; // 4001の場合は再接続しない
+            }
             console.log('WebSocket connection closed. Attempting to reconnect...');
             setTimeout(() => initializeWebSocket(url), 1000); // URLを保持しつつ1秒後に再接続
         };

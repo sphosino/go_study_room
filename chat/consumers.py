@@ -3,8 +3,8 @@ import django
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'go-room.settings')
 django.setup()
-
-from .models import ChatRoom, ChatMessage, GoBoard
+from channels.layers import get_channel_layer
+from .models import ChatRoom, ChatMessage, GoBoard, Sockets
 import json
 from django.conf import settings
 from accounts.models import CustomUser, PushSubscription
@@ -32,7 +32,10 @@ logger = logging.getLogger(__name__)
 logging.getLogger("daphne.ws_protocol").setLevel(logging.ERROR)
 
 GLOBAL_LOBBY, created = ChatRoom.objects.get_or_create(name='__system_lobby')
-GLOBAL_LOBBY_ID = GLOBAL_LOBBY.id 
+GLOBAL_LOBBY_ID = GLOBAL_LOBBY.id
+SOCKET_TIMEOUT = 300 # 秒
+WORKER_INTERVAL = 10  # 秒
+_global_monitor_task = None #ワーカーのタスクを保持する変数
 
 if created:
     print("新しくロビーを作成しました！")
@@ -104,8 +107,27 @@ class SendMethodMixin():
                 image_url = img,
                 thumbnail_url = thumbnail,
             )
+    async def new_accept(self):
+        await AsyncWebsocketConsumer.accept(self)
+        global _global_monitor_task
+        socket_id = self.channel_name
+        # 接続が確立したときにソケットを保存
+        await database_sync_to_async(Sockets.objects.create)(
+            socket_id=socket_id,
+            user=self.scope["user"]
+        )
+        # 接続が確立したときにゴーストを削除するワーカーを起動
+        if _global_monitor_task is None or _global_monitor_task.done():
+            _global_monitor_task = asyncio.create_task(worker())
+            logger.info("Started ghost monitor task.")
 
-class LobbyConsumer(AsyncWebsocketConsumer,SendMethodMixin):
+    async def force_close(self, event):
+        """ワーカーからの強制切断命令"""
+        print(f"💀 強制切断実行: {self.channel_name}")
+        await self.send_message('timeout')
+        await self.close(code=4001, reason="Ghost timeout")
+
+class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
 
     users = set()
     serchsocket = {}
@@ -121,7 +143,6 @@ class LobbyConsumer(AsyncWebsocketConsumer,SendMethodMixin):
             LobbyConsumer.serchsocket[self.user.account_id] = self
             logger.info(f"{self.user.account_id}がロビーに接続しましたよ")
 
-
             result = await manage_user_in_chatroom(self,GLOBAL_LOBBY_ID,"add")
 
             user_list = [i.account_id for i in result]
@@ -130,8 +151,7 @@ class LobbyConsumer(AsyncWebsocketConsumer,SendMethodMixin):
                 self.room_group_name,
                 self.channel_name
             )
-
-            await self.accept()
+            await self.new_accept()
             await self.send_message('your_account_id', account_id = self.user.account_id, is_server = True)
             self.last_active_time = time.time()
             self.check_timeout_task = asyncio.create_task(self.check_timeout())
@@ -179,6 +199,8 @@ class LobbyConsumer(AsyncWebsocketConsumer,SendMethodMixin):
         client_message_type = text_data_json['client_message_type']
 
         logger.info(f"lobby:{client_message_type}")
+
+        await database_sync_to_async(Sockets.objects.filter(socket_id=self.channel_name).update)(timestamp=timezone.now())
 
         match client_message_type:
 
@@ -240,8 +262,6 @@ class LobbyConsumer(AsyncWebsocketConsumer,SendMethodMixin):
                                 logger.error(f"Push failed: {e}")
                                 status = getattr(e.response, "status_code", None)
                                 if status in [404,410]:
-                                    #410このエンドポイントはもう無効だから消していいよ
-                                    #404一時的に見つからないだけかもま、削除でええやろ
                                     sub.delete()
 
                 print(text_data_json['notify'])
@@ -327,7 +347,7 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
                 self.room_group_name,
                 self.channel_name
             )
-            await self.accept()
+            await self.new_accept()
             await self.send_message('your_account_id', account_id = self.user.account_id, is_server = True)
             await self.send_message_to_group(
                 'join',   
@@ -559,3 +579,79 @@ def get_previous_messages(room, message_limit = 50, time = None):
     if time:
         result = result.filter(timestamp__gte = timezone.now() - timedelta(minutes=time))
     return list(result.order_by('-timestamp')[:message_limit][::-1])
+
+@database_sync_to_async
+def get_all_sockets():
+    """ソケット一覧取得（同期関数）"""
+    return list(Sockets.objects.all())
+
+@database_sync_to_async
+def delete_socket(socket_instance):
+    """ソケット削除（同期関数）"""
+    socket_instance.delete()
+
+
+@database_sync_to_async
+def count_user_sockets(socket_id):
+    """ユーザーソケット数確認"""
+    return Sockets.objects.filter(socket_id=socket_id).count()
+async def worker():
+    print("=== WORKER START ===")
+    
+    iteration = 0
+    while True:
+        iteration += 1
+        print(f"\n--- ループ {iteration} 開始 ---")
+        
+        try:
+            # 1. ソケット取得
+            sockets = await get_all_sockets()
+            print(f"取得ソケット数: {len(sockets)}")
+            
+            if not sockets:
+                print("ソケット0個 → break")
+                break
+            
+            print(f"{len(sockets)}個チェック開始...")
+            threshold = timezone.now() - timedelta(seconds=SOCKET_TIMEOUT)
+            
+            deleted_count = 0
+            for s in sockets:
+                try:
+                    print(f"チェック: {s.socket_id} (timestamp: {s.timestamp})")
+                    
+                    if s.timestamp < threshold:
+                        print(f"→ 削除対象: {s.socket_id} (timestamp: {s.timestamp})")
+                        # 1. ソケットに直接切断命令
+                        print(f"→ ソケットに切断命令送信: {s.socket_id}")
+                        channel_layer = get_channel_layer()
+                        await channel_layer.send(s.socket_id, {
+                            "type": "force_close"
+                        })
+                        print(f"→ 切断命令送信完了: {s.socket_id}")
+                        # 2. データベースからソケット削除
+                        print(f"→ データベースから削除します: {s.socket_id}")
+                        await delete_socket(s)
+                        deleted_count += 1
+                        print("→ データベースから削除完了")
+                        
+                        # 残りソケット確認
+                        remaining = await count_user_sockets(s.socket_id)
+                        print(f"残り: {remaining}")
+                    else:
+                        print(f"(timestamp: {s.timestamp})")
+                        
+                except Exception as e:
+                    print(f"ソケット処理エラー: {e}")
+                    logger.error(f"Socket error: {e}", exc_info=True)
+            
+            print(f"ループ{iteration}完了: {deleted_count}個削除")
+            
+        except Exception as e:
+            print(f"ループ{iteration}全体エラー: {e}")
+            logger.error(f"Worker loop error: {e}", exc_info=True)
+        
+        print(f"{WORKER_INTERVAL}秒待機...")
+        await asyncio.sleep(WORKER_INTERVAL)
+    
+    print("=== WORKER END ===")
