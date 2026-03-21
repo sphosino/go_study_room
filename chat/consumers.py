@@ -34,7 +34,7 @@ logging.getLogger("daphne.ws_protocol").setLevel(logging.ERROR)
 GLOBAL_LOBBY, created = ChatRoom.objects.get_or_create(name='__system_lobby')
 GLOBAL_LOBBY_ID = GLOBAL_LOBBY.id
 SOCKET_TIMEOUT = 300 # 秒
-WORKER_INTERVAL = 10  # 秒
+WORKER_INTERVAL = 20  # 秒
 _global_monitor_task = None #ワーカーのタスクを保持する変数
 
 if created:
@@ -607,7 +607,7 @@ async def worker():
         try:
             # 1. ソケット取得
             sockets = await get_all_sockets()
-            print(f"取得ソケット数: {len(sockets)}")
+            print(f"取得ソケット数: {len(sockets)} インターバル: {WORKER_INTERVAL}秒")
             
             if not sockets:
                 print("ソケット0個 → break")
@@ -619,12 +619,11 @@ async def worker():
             deleted_count = 0
             for s in sockets:
                 try:
-                    print(f"チェック: {s.socket_id} (timestamp: {s.timestamp})")
+                    print(f"チェック: (timestamp: {s.timestamp})")
                     
                     if s.timestamp < threshold:
-                        print(f"→ 削除対象: {s.socket_id} (timestamp: {s.timestamp})")
                         # 1. ソケットに直接切断命令
-                        print(f"→ ソケットに切断命令送信: {s.socket_id}")
+                        print(f"タイムアウト→ ソケットに切断命令送信: {s.socket_id}")
                         channel_layer = get_channel_layer()
                         await channel_layer.send(s.socket_id, {
                             "type": "force_close"
@@ -640,8 +639,7 @@ async def worker():
                         remaining = await count_user_sockets(s.socket_id)
                         print(f"残り: {remaining}")
                     else:
-                        print(f"(timestamp: {s.timestamp})")
-                        
+                        print(f"→ タイムアウトしていません")                        
                 except Exception as e:
                     print(f"ソケット処理エラー: {e}")
                     logger.error(f"Socket error: {e}", exc_info=True)
@@ -652,7 +650,6 @@ async def worker():
             print(f"ループ{iteration}全体エラー: {e}")
             logger.error(f"Worker loop error: {e}", exc_info=True)
         
-        print(f"{WORKER_INTERVAL}秒待機...")
         await asyncio.sleep(WORKER_INTERVAL)
     
     print("=== WORKER END ===")
