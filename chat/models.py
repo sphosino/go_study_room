@@ -66,7 +66,7 @@ class ChatMessage(models.Model):
     image = models.ForeignKey(ChatImage, on_delete = models.SET_NULL, blank=True, null= True)
     timestamp = models.DateTimeField(auto_now_add = True)
     room = models.ForeignKey(ChatRoom, on_delete = models.CASCADE, related_name='chats')
-    user = models.ForeignKey(CustomUser, on_delete = models.DO_NOTHING)
+    user = models.ForeignKey(CustomUser, on_delete = models.SET_NULL, blank=True, null=True)
 
     def __str__(self):
         return f"{self.user} -> {self.content[:50]}"
