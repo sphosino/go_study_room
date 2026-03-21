@@ -34,7 +34,7 @@ logging.getLogger("daphne.ws_protocol").setLevel(logging.ERROR)
 GLOBAL_LOBBY, created = ChatRoom.objects.get_or_create(name='__system_lobby')
 GLOBAL_LOBBY_ID = GLOBAL_LOBBY.id
 SOCKET_TIMEOUT = 300 # 秒
-WORKER_INTERVAL = 20  # 秒
+WORKER_INTERVAL = 40  # 秒
 _global_monitor_task = None #ワーカーのタスクを保持する変数
 
 if created:
