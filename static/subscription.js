@@ -38,7 +38,7 @@
 				console.log("既存subscription再利用")
 			}
 
-            const res = await fetch("/accounts/api/save-subscription/", {
+            const res = await fetch("/api/save-subscription/", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
