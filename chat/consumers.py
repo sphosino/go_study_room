@@ -167,11 +167,9 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
             self.close()
 
     async def disconnect(self, close_code):
-        self.room_id = self.scope['url_route']['kwargs']['room_id']
-        if self.room_id:
-            await database_sync_to_async(
-                ChatRoom.objects.filter(id=self.room_id).update
-            )(last_updated_at=timezone.now())
+        await database_sync_to_async(
+            ChatRoom.objects.filter(id=GLOBAL_LOBBY_ID).update
+        )(last_updated_at=timezone.now())
         
         result = await manage_user_in_chatroom(self,GLOBAL_LOBBY_ID, "remove")
         user_list = [i.account_id for i in result]
