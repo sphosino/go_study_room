@@ -10,6 +10,8 @@
         return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
     }
     export async function registerPush(vapidkey) {
+        console.log("鍵の中身: [" + vapidkey + "]"); 
+    console.log("長さ: " + vapidkey.length);
         if (Notification.permission !== "granted") {
             return;
         }

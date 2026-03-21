@@ -13,6 +13,7 @@ from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from accounts.models import PushSubscription
 import json
+from django.conf import settings
 
 class IndexView(TemplateView):
     template_name = "index.html"
@@ -24,7 +25,7 @@ class IndexView(TemplateView):
             
             if user.is_authenticated:
                 context['user_notify_setting'] = user.notify_room_create
-            
+            context['VAPID_PUBLIC_KEY'] = getattr(settings, 'VAPID_PUBLIC_KEY', '')
             return context
 
 class SignupView(CreateView):
@@ -65,10 +66,10 @@ def service_worker(request):
 @never_cache  
 def manifest(request):
     manifest_path = finders.find('sw.js')
-    if not sw_path or not os.path.exists(sw_path):
+    if not manifest_path or not os.path.exists(manifest_path):
         return HttpResponse("manifest not found", status=404)
     
-    with open(sw_path, 'r') as f:
+    with open(manifest_path, 'r') as f:
         content = f.read()
     return HttpResponse(content, content_type='application/javascript')
 
