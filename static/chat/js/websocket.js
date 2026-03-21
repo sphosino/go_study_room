@@ -1,6 +1,7 @@
 //websocket.js
 import logging_server_message from "./util/logging.js";
 let websocket = null;
+let autoReconnect = true;
 const messageQueue = []
 
 export async function initializeWebSocket(url){
@@ -21,10 +22,10 @@ export async function initializeWebSocket(url){
             console.log('WebSocket connection opened');
             resolve(websocket); // WebSocketの初期化が完了したらresolveを呼ぶ
         };
-        websocket.onclose = () => {
-            if (event.code === 4001){
-                console.warn('WebSocket closed by server with code 4001. Not attempting to reconnect.');
-                return; // 4001の場合は再接続しない
+        websocket.onclose = (e) => {
+            if (autoReconnect === false) {
+                console.warn(' Not attempting to reconnect.');
+                return
             }
             console.log('WebSocket connection closed. Attempting to reconnect...');
             setTimeout(() => initializeWebSocket(url), 1000); // URLを保持しつつ1秒後に再接続
@@ -77,4 +78,8 @@ export function getSocket(){
         console.error("ソケットが初期化されていないのに取得しようとしました、これは想定していません")
     }
     return websocket
+}
+
+export function setReconnect(enabled) {
+    autoReconnect = enabled;
 }

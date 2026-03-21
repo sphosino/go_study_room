@@ -1,5 +1,5 @@
 //lobby.js
-import { initializeWebSocket, processMessageQueue, saveInitializedSocket} from "./websocket.js";
+import { initializeWebSocket, processMessageQueue, saveInitializedSocket, setReconnect} from "./websocket.js";
 import { chatLog, roomListUpdate, roomList, roomNameInput, roomNotify, makeRoomModal , makeRoomSubmit} from "./elements.js";
 
 initializeWebSocket("chat/lobby").then( async (socket) =>{
@@ -43,7 +43,13 @@ initializeWebSocket("chat/lobby").then( async (socket) =>{
 	makeRoomSubmit.onclick = function(e) {
 		makeRoomModal.showModal();
 	};
-
+	socket.registerFunction('timeout', (data) => {
+		setReconnect(false); // タイムアウトの場合は再接続しない
+		chat_add(chatLog, "長時間操作がなかったため、接続を終了しました。再接続するにはページを更新してください。", "div");
+		if (makeRoomModal.open) {
+			makeRoomModal.close();
+		}
+	});
 	makeRoomModal.addEventListener('close', () => {
 		switch(makeRoomModal.returnValue){
 			case 'make-room-submit':

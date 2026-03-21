@@ -1,5 +1,5 @@
 //room.js
-import { initializeWebSocket, processMessageQueue, saveInitializedSocket} from "./websocket.js";
+import { initializeWebSocket, processMessageQueue, saveInitializedSocket,setReconnect} from "./websocket.js";
 import { chatLog, makeBoardModal, makeBoard, inputBoardX, inputBoardY,boardCanvas, remoteAudio, toggle_muteAudioButton} from "./elements.js";
 import GoBoard from "./goban/goban.js";
 
@@ -130,6 +130,10 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
         console.log('ICE候補ハンドラを呼びます')
         handleIceCandidate(data.sender, data.candidate)
     })
+    socket.registerFunction('timeout', (data) => {
+        setReconnect(false); // タイムアウトの場合は再接続しない
+        chat_add(chatLog, "長時間操作がなかったため、接続を終了しました。再接続するにはページを更新してください。", "div");
+    });
     makeBoardModal.addEventListener('close', () => {
         switch(makeBoardModal.returnValue){
             case 'make-board-submit':
