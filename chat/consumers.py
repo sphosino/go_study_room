@@ -122,8 +122,6 @@ class SendMethodMixin():
             logger.info("Started ghost monitor task.")
 
     async def force_close(self, event):
-        """ワーカーからの強制切断命令"""
-        print(f"💀 強制切断実行: {self.channel_name}")
         await self.send_message('timeout')
         await self.close(code=4001, reason="Ghost timeout")
 
@@ -399,6 +397,8 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
 
         room_id = self.scope['url_route']['kwargs']['room_id']
 
+        await database_sync_to_async(Sockets.objects.filter(socket_id=self.channel_name).update)(timestamp=timezone.now())
+
         match client_message_type:
 
             case 'chat':
@@ -595,6 +595,7 @@ def delete_socket(socket_instance):
 def count_user_sockets(socket_id):
     """ユーザーソケット数確認"""
     return Sockets.objects.filter(socket_id=socket_id).count()
+
 async def worker():
     print("=== WORKER START ===")
     
