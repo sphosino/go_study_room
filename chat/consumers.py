@@ -115,7 +115,6 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
     async def connect(self):
         self.user = self.scope["user"]
         self.room_group_name = str(GLOBAL_LOBBY_ID)
-        self.room_name = str(GLOBAL_LOBBY_ID)
 
         if self.user.is_authenticated:
             
@@ -279,7 +278,6 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
         self.user = self.scope["user"]
         self.room_id = self.scope['url_route']['kwargs']['room_id']
         self.room_group_name = self.room_id
-        self.room_name = self.room_id
 
         if self.user.is_authenticated:
 

@@ -34,7 +34,7 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
 	const chat_add = chat_js.chat_add
 	const user_list_update_socket = userlist_js.user_list_update_socket
 
-    const peerConnections = {}; // アカウントIDごとにRTCPeerConnectionを保持するオブジェクト
+    const peerConnections = {}; // ソケットIDごとにRTCPeerConnectionを保持するオブジェクト
     const configuration = {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
@@ -82,21 +82,20 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
 
         canvas.addEventListener('mousemove',(event)=>{
             const rect = canvas.getBoundingClientRect();
-            goban.checkOnMouse(
-                event.clientY - rect.top, // Canvas内のY座標
-                event.clientX - rect.left // Canvas内のX座標
-            );
-            Object.entries(peerConnections).forEach((key)=>{
-                console.log("A", key[0])
-                const dataChannel = key[1]["dataChannel__"]
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            goban.checkOnMouse(y,x);
+            Object.entries(peerConnections).forEach(([socket_id, peerConnection])=>{
+                console.log("A - 接続中のID:", socket_id);
+                const dataChannel = peerConnection.dataChannel__
                 if(dataChannel){
                     console.log("B")
                     if(dataChannel.readyState === 'open'){
                         dataChannel.send(JSON.stringify({
-                            "x": event.clientY - rect.top,
-                            "y": event.clientY - rect.left
+                            "message_type": "mouse_move",
+                            "x": x,
+                            "y": y
                         }))
-                        console.log("QQQQQQQQQQ")
                     }
                 }
             })
@@ -143,9 +142,6 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
                     'x': parseInt(inputBoardX.value),
                     'y': parseInt(inputBoardY.value)
                 }));
-                Object.entries(peerConnections).forEach( async (key)=>{
-                    await createOfferWithDataChannel(key[0])
-                })
             break;
             case 'make-board-cancel':
                 console.log('make-board-cancel');
@@ -194,7 +190,7 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
         peerConnection.onconnectionstatechange = event => {
             console.log('Current connection state:', peerConnection.connectionState)
         };
-        // ICE接続状態の変化をより寛容に処理
+
         peerConnection.oniceconnectionstatechange = () => {
             const state = peerConnection.iceConnectionState;
             if (state === 'disconnected') {
@@ -231,38 +227,32 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
                 console.log("ICE候補の収集が完了しました。");
             }
         };
-        peerConnection.ondatachannel = event =>{
-            console.log("C")
-              // ここでデータチャネルを受け取る
-            const dataChannel = event.channel;
-            peerConnection["dataChannel__"] = dataChannel
 
-              // データチャネルのイベントを設定
-            dataChannel.onopen = () => {
-                console.log('Data channel is open');
-            };
-
-            dataChannel.onmessage = (event) => {
-                console.log('Received message:', event.data);
-            };
-
-            dataChannel.onclose = () => {
-                console.log('Data channel is closed');
-            };
-        };
         return peerConnection
     }
+    ////////////////////////////////////////オファー側////////////////////
+    ////////////////////////////////////////
     async function createOffer(socketId) {
         console.log('called createOffer')
     
-        await getAudioStream();
-    
-        const peerConnection = createNewRTCPeerConnection(socketId);
+        await getAudioStream(); //音声通信できるか確認のため、先にストリームを取得しておく
 
+        //ピア作成！
+        const peerConnection = createNewRTCPeerConnection(socketId);
+        //データチャンネルも作るよ
+        const dataChannel = peerConnection.createDataChannel("mouseMove");
+        peerConnection.dataChannel__ = dataChannel;
+        setupDataChannel(dataChannel, socketId);
+
+        //音声通信の準備。
+        //ストリームをピアにセットしてからオファーを作成する必要があります
         setStream(peerConnection)
+        //オファー作成
         const offer = await peerConnection.createOffer()
+        //通信ルール確定
         await peerConnection.setLocalDescription(offer);
-                
+        
+        //オファーを相手に送る
         console.log('sending offer ->', socketId)
         socket.send(JSON.stringify({
             'client_message_type': 'p2pOffer',
@@ -270,16 +260,19 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
             'for': socketId //オファーを出す相手
         }));
     }
+    //オファーに対する返答を処理します！
     async function handleAnswer(socketId, answer) {
         console.log('アンサーハンドラが呼ばれました')
     
         const peerConnection = peerConnections[socketId]
         if(!peerConnection){
+            //createofferしていない相手からのアンサーは受け取れないので、エラー
             console.log('予期しないアンサー', socketId)
             return;
         }
         console.log('Setting remote description...');
 
+        //相手がオファーに対して、通信ルールを確定させたSDPを送ってきた。それをリモートSDPとしてセットする
         try {
             await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
             console.log('Setting remote description...completed');
@@ -293,10 +286,18 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
             handleIceCandidate(queue_candidate[0],queue_candidate[1])
         }
     }
+    ////////////////////////////////////
+    ///////アンサー側////////////////////
+    ////////////////////////////////////
     async function handleOffer(socketId, offer) {
         console.log('オファーハンドラが呼ばれました sender', socketId)
         //オファーが来たらすぐにピアコネクションを登録して、次に来るICEこうほに対して準備
         const peerConnection = createNewRTCPeerConnection(socketId);
+        peerConnection.ondatachannel = event =>{
+            console.log("データチャンネル開通（アンサー側）")
+            peerConnection.dataChannel__ = event.channel;
+            setupDataChannel(event.channel,socketId);
+        };
         // 受信したオファーをリモートSDPとしてセット
         console.log("before setRemoteDescription")
         await peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
@@ -336,38 +337,36 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
             iceCandidateQueue.push([socketId,candidate])
         }
     }
-    async function createOfferWithDataChannel(socketId) {
-        console.log("データチャンネルを作るよ")
-        if (!peerConnections[socketId]) {
-            await getAudioStream();
-            setStream(createNewRTCPeerConnection(socketId))
-        }
-        const peerConnection = peerConnections[socketId]
-        // 1. データチャネルを作成
-        const dataChannel = peerConnection.createDataChannel("myDataChannel");
-        dataChannel.onmessage = (event) =>{
-            console.log(event.data)
-        }
-        peerConnection["dataChannel__"] = dataChannel
-        // 2. オファーを生成
-        const offer = await peerConnection.createOffer();
-      
-        // 3. ローカルのSDPにオファーを設定
-        await peerConnection.setLocalDescription(offer);
-      
-        // 4. オファーを相手に送信
-        sendOfferToRemote(socketId,peerConnection);  
-    }
-    function sendOfferToRemote(socketId,peerConnection){
-        console.log('@@@sending offer ->', socketId)
-        socket.send(JSON.stringify({
-            'client_message_type': 'p2pOffer',
-            'offer': peerConnection.localDescription,
-            'for': socketId //オファーを出す相手
-        }));
-    }
+
     processMessageQueue();
 })
+
+
+function setupDataChannel(channel, socketId){
+    channel.onopen = () => {console.log("Data channel opened with socket:", socketId)};
+    channel.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            switch(data.message_type){
+                case 'mouse_move':
+                    // 相手のマウス位置を動かす共通処理
+                    //updateOpponentCursor(peerId, data.x, data.y);
+                    console.log(`相手のマウス位置 -> X:${data.x}, Y:${data.y}`);
+                break;
+                default:
+                    console.log("不明なメッセージタイプ:", data.message_type);
+            }
+            if (data.message_type === 'mouse_move') {
+                // 相手のマウス位置を動かす共通処理
+                //updateOpponentCursor(peerId, data.x, data.y);
+                console.log(`相手のマウス位置 -> X:${data.x}, Y:${data.y}`);
+            }
+        } catch (e) {
+            console.error("メッセージ解析エラー", e);
+        }
+    };
+    channel.onclose = () => {console.log("Data channel closed with socket:", socketId)};
+}
 
 function toggle_muteAudio(stream) {
     const audioTrack = stream.getAudioTracks()[0]
