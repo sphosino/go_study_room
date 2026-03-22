@@ -85,7 +85,6 @@ class SendMethodMixin():
     async def send_previous_messages(self, room_id, message_limit = 50, time = None):
         previous_messages = await get_previous_messages(room_id, message_limit, time)
 
-
         for message in previous_messages:
             print(f"過去メッセージ -> {message}")
             await self.send_message(
@@ -132,8 +131,7 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
             )
             await self.new_accept()
             await self.send_message('your_socket_id', socket_id = self.channel_name, is_server = True)
-            self.last_active_time = time.time()
-            self.check_timeout_task = asyncio.create_task(self.check_timeout())
+
 
             await self.send_message_to_group(
                 'join', 
@@ -161,8 +159,6 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
         )
 
     async def receive(self, text_data):
-
-        self.last_active_time = time.time()
 
         text_data_json = json.loads(text_data)
         client_message_type = text_data_json['client_message_type']
@@ -276,13 +272,6 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
         room_list = { i.name : i.id for i in result}
         await self.send_message(message_type, roomlist = room_list)
         
-    async def check_timeout(self, wait_minute = 5, loop_wait = 20):
-        waittime = loop_wait if loop_wait >= 1 else 1
-        end_time = wait_minute * 60
-        while time.time() < self.last_active_time + end_time:
-            await asyncio.sleep(waittime)
-        await self.send_message('timeout')
-        await self.close()
 
 class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
     async def connect(self):
@@ -424,14 +413,13 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
     async def p2psend_message(self, message_type, text_data):
         target_socket = text_data.get('for')
         if target_socket:
-            text_data['sender'] = self.channel_name
+            text_data['sender'] = self.user.account_id
+            text_data['socket_id'] = self.channel_name
+            text_data['server_message_type'] = message_type
             await self.channel_layer.send(target_socket, {
-                'type': 'receive_from_layer',
-                'server_message_type': message_type,
+                'type': 'send_message_finally',
                 **text_data
             })
-    async def receive_from_layer(self, event):
-        await self.send(text_data=json.dumps(event))
 
     async def send_existing_boards(self):
         @database_sync_to_async

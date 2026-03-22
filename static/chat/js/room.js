@@ -121,15 +121,15 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
 
     socket.registerFunction('p2pOffer', async (data)=>{
         console.log('オファーハンドラを呼びます')
-        await handleOffer(data.sender, data.offer);
+        await handleOffer(data.socket_id, data.offer);
     })
     socket.registerFunction('p2pAnswer', async (data)=>{
         console.log('アンサーハンドラを呼びます')
-        await handleAnswer(data.sender, data.answer);
+        await handleAnswer(data.socket_id, data.answer);
     })
     socket.registerFunction('p2pIceCandidate', (data)=>{
         console.log('ICE候補ハンドラを呼びます')
-        handleIceCandidate(data.sender, data.candidate)
+        handleIceCandidate(data.socket_id, data.candidate)
     })
     socket.registerFunction('timeout', (data) => {
         setReconnect(false); // タイムアウトの場合は再接続しない
