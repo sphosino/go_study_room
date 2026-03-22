@@ -21,6 +21,7 @@ import logging
 import html
 import time
 from django.urls import reverse
+from django.http import JsonResponse
 
 """ この行をコメントアウトすれば、ロガーリストが見れます
 for logger_name in logging.root.manager.loggerDict:
@@ -47,10 +48,15 @@ class SendMethodMixin():
 
     #全てのメッセージは最終的にこの関数からクライアントに送られる
     async def send_message_finally(self, event):
+
         logger.info(event['server_message_type'])
-        #senderが設定されてなければ、このソケットからのメッセージ
+
+        #サーバーからクライアントに送るメッセージにsenderとsocket_idがない場合は、送信者を現在のユーザー、socket_idを現在のソケットに設定する
         if not event.get('sender'):
             event['sender'] = self.user.account_id
+        if not event.get('socket_id'):
+            event['socket_id'] = self.channel_name
+        
         await self.send(text_data=json.dumps({
             **event
         }))
@@ -79,14 +85,12 @@ class SendMethodMixin():
     async def send_previous_messages(self, room_id, message_limit = 50, time = None):
         previous_messages = await get_previous_messages(room_id, message_limit, time)
 
+
         for message in previous_messages:
-            
-            await self.send_message('chat',
-                sender = message["sender"],
-                content = message["content"],
-                timestamp = message["timestamp"],
-                image_url = message["image_url"],
-                thumbnail_url = message["thumbnail_url"],
+            print(f"過去メッセージ -> {message}")
+            await self.send_message(
+                'chat',
+                **message
             )
             
     async def new_accept(self):
@@ -132,9 +136,7 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
             self.check_timeout_task = asyncio.create_task(self.check_timeout())
 
             await self.send_message_to_group(
-                'join',   
-                name = self.user.account_id, #入室者名
-                socket_id = self.channel_name, #入室者のsocket_id
+                'join', 
                 user_list = user_list #現在の入室者リスト
             )
 
@@ -304,9 +306,7 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
             await self.new_accept()
             await self.send_message('your_socket_id', socket_id = self.channel_name, is_server = True)
             await self.send_message_to_group(
-                'join',   
-                name = self.user.account_id, #入室者名
-                socket_id = self.channel_name, #入室者のsocket_id
+                'join',
                 user_list = user_list #現在の入室者リスト
             )
 

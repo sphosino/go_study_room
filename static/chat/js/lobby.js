@@ -14,8 +14,8 @@ initializeWebSocket("chat/lobby").then( async (socket) =>{
 	const chat_add = chat_js.chat_add
 	const user_list_update_socket = userlist_js.user_list_update_socket
 	socket.registerFunction('join',(data)=>{
-        console.log('joined -> ', data.name)
-        chat_add(chatLog, data.name + ' さんが入室しました',"div")
+        console.log('joined -> ', data.sender)
+        chat_add(chatLog, data.sender + ' さんが入室しました',"div")
         user_list_update_socket(socket);
     })
 	socket.registerFunction('get_lobby_id', (data)=>{

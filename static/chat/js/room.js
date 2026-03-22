@@ -61,8 +61,8 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
         window.socket_id = data.socket_id
     });
     socket.registerFunction('join',async(data)=>{
-        console.log('joined -> ', data.name)
-        chat_add(chatLog, data.name + ' さんが入室しました',"div")
+        console.log('joined -> ', data.sender)
+        chat_add(chatLog, data.sender + ' さんが入室しました',"div")
         user_list_update_socket(socket);
         if (data.socket_id === window.socket_id) return;
         await createOffer(data.socket_id)
