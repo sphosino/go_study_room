@@ -22,8 +22,9 @@ initializeWebSocket("chat/lobby").then( async (socket) =>{
 		window.roomid = data.result
 		console.log(`ロビーのroomidを取得しました -> ${window.roomid}`)
 	})
-	socket.registerFunction('your_account_id', (data)=>{
-		window.userId = data.account_id
+	socket.registerFunction('your_socket_id', (data)=>{
+		console.log(`自分のsocket_idを取得しました -> ${data.socket_id}`)
+		window.socket_id = data.socket_id
 	})
 	socket.registerFunction('make_room',(data) =>{roomListUpdate.onclick()})
 	socket.registerFunction('room-list-update',(data)=>{

@@ -76,38 +76,19 @@ class SendMethodMixin():
         })
 
     # 過去のメッセージを取得してクライアントに送信
-    async def send_previous_messages(self, room, message_limit = 50, time = None):
-        previous_messages = await get_previous_messages(room, message_limit, time)
+    async def send_previous_messages(self, room_id, message_limit = 50, time = None):
+        previous_messages = await get_previous_messages(room_id, message_limit, time)
 
         for message in previous_messages:
             
-            @database_sync_to_async
-            def get_fields():
-                img_url = ""
-                thumbnail_url = ""
-                if message.image:
-                    img_url = message.image.image.url
-                    if message.image.thumbnail:
-                        thumbnail_url = message.image.thumbnail.url
-                return (
-                    message.user.account_id,
-                    message.content,
-                    str(message.timestamp),
-                    img_url,
-                    thumbnail_url
-                )
-            
-            name, content, stamp ,img , thumbnail= await get_fields()
-
-            logger.info(f"{name} {content} {stamp} {img} {thumbnail}")
-
             await self.send_message('chat',
-                sender = name,
-                content = content,
-                timestamp = stamp,
-                image_url = img,
-                thumbnail_url = thumbnail,
+                sender = message["sender"],
+                content = message["content"],
+                timestamp = message["timestamp"],
+                image_url = message["image_url"],
+                thumbnail_url = message["thumbnail_url"],
             )
+            
     async def new_accept(self):
         await AsyncWebsocketConsumer.accept(self)
         global _global_monitor_task
@@ -128,9 +109,6 @@ class SendMethodMixin():
 
 class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
 
-    users = set()
-    searchsocket = {}
-
     async def connect(self):
         self.user = self.scope["user"]
         self.room_group_name = str(GLOBAL_LOBBY_ID)
@@ -138,8 +116,6 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
 
         if self.user.is_authenticated:
             
-            LobbyConsumer.users.add(self)
-            LobbyConsumer.searchsocket[self.user.account_id] = self
             logger.info(f"{self.user.account_id}がロビーに接続しましたよ")
 
             result = await manage_user_in_chatroom(self,GLOBAL_LOBBY_ID,"add")
@@ -151,29 +127,27 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
                 self.channel_name
             )
             await self.new_accept()
-            await self.send_message('your_account_id', account_id = self.user.account_id, is_server = True)
+            await self.send_message('your_socket_id', socket_id = self.channel_name, is_server = True)
             self.last_active_time = time.time()
             self.check_timeout_task = asyncio.create_task(self.check_timeout())
 
             await self.send_message_to_group(
                 'join',   
                 name = self.user.account_id, #入室者名
+                socket_id = self.channel_name, #入室者のsocket_id
                 user_list = user_list #現在の入室者リスト
             )
 
-            await self.send_previous_messages(GLOBAL_LOBBY, 50, 10) #最大５０件、１０分以内のメッセージを取得
+            await self.send_previous_messages(GLOBAL_LOBBY_ID, 50, 10) #最大５０件、１０分以内のメッセージを取得
 
         else:
             self.close()
 
     async def disconnect(self, close_code):
-                
+
         result = await manage_user_in_chatroom(self,GLOBAL_LOBBY_ID, "remove")
         user_list = [i.account_id for i in result]
         
-        if (close_code != 1000) & (close_code != 1001):
-            logger.info(f"WebSocketが通常ではない切断が起きました-> CODE:{close_code}")
-
         await self.send_message_to_group('leave',
             name     = self.user.account_id, #退室者名
             user_list= user_list  #現在の入室者リスト
@@ -183,8 +157,6 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
             self.room_group_name,
             self.channel_name
         )
-        LobbyConsumer.users.remove(self)
-        LobbyConsumer.searchsocket.pop(self.user.account_id, None)
 
     async def receive(self, text_data):
 
@@ -208,7 +180,7 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
 
                 message = text_data_json['content']
                 sanitized_message = html.escape(message)
-                await save_message(GLOBAL_LOBBY, self.user, sanitized_message)
+                await save_message(GLOBAL_LOBBY_ID, self.user, sanitized_message)
                 text_data_json["name"] = self.user.account_id
                 await self.send_message_to_group(client_message_type, **text_data_json)
 
@@ -311,10 +283,6 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
         await self.close()
 
 class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
-
-    users = set()
-    searchsocket = {}
-
     async def connect(self):
 
         self.user = self.scope["user"]
@@ -326,9 +294,6 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
 
             logger.info(f"{self.user}がROOM{self.room_id}に接続しました")
 
-            RoomConsumer.users.add(self)
-            RoomConsumer.searchsocket[self.user.account_id] = self
-
             result = await manage_user_in_chatroom(self, self.room_id,"add")
             user_list = [i.account_id for i in result]
 
@@ -337,15 +302,16 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
                 self.channel_name
             )
             await self.new_accept()
-            await self.send_message('your_account_id', account_id = self.user.account_id, is_server = True)
+            await self.send_message('your_socket_id', socket_id = self.channel_name, is_server = True)
             await self.send_message_to_group(
                 'join',   
                 name = self.user.account_id, #入室者名
+                socket_id = self.channel_name, #入室者のsocket_id
                 user_list = user_list #現在の入室者リスト
             )
 
             # 過去のメッセージを取得してクライアントに送信
-            await self.send_previous_messages(self.room, 100)
+            await self.send_previous_messages(self.room_id, 100)
             
             # roomに紐づく既存のGoBoardを新規参加ユーザーに送信
             await self.send_existing_boards()
@@ -370,8 +336,6 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
             self.room_group_name,
             self.channel_name
         )
-        RoomConsumer.users.remove(self)
-        RoomConsumer.searchsocket.pop(self.user.account_id, None)
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
@@ -390,7 +354,7 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
 
                 message = text_data_json['content']
                 sanitized_message = html.escape(message)
-                await save_message(self.room, self.user, sanitized_message)
+                await save_message(self.room_id, self.user, sanitized_message)
                 text_data_json["name"] = self.user.account_id
                 await self.send_message_to_group(client_message_type, **text_data_json)
 
@@ -412,8 +376,7 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
 
                 @database_sync_to_async
                 def make_go_board():
-                    room = ChatRoom.objects.get(id = self.room_id)
-                    new_board = GoBoard(y = y, x = x, room = room)
+                    new_board = GoBoard.objects.create(y = y, x = x, room_id = self.room_id)
                     new_board.save()
                     return {
                         "id" : new_board.id,
@@ -460,17 +423,21 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
 
     async def p2psend_message(self, message_type, text_data):
         logger.info(f"sendp2p_message {message_type}")
-        target_socket = RoomConsumer.searchsocket.get(text_data['for'])
+        target_socket = text_data.get('for')
         if target_socket:
-            text_data['sender'] = self.user.account_id
-            await target_socket.send_message(message_type, **text_data)
+            text_data['sender'] = self.channel_name
+            await self.channel_layer.send(target_socket, {
+                'type': 'send_message',
+                'server_message_type': message_type,
+                **text_data
+            })
         else:
             print(f"Error: Socket for account {text_data['for']} not found.")
 
     async def send_existing_boards(self):
         @database_sync_to_async
         def get_boards():
-            boards = list(GoBoard.objects.filter(room=self.room))
+            boards = list(GoBoard.objects.filter(room=self.room_id))
             print(f"取得したboard数: {len(boards)}") 
             return boards
 
@@ -532,15 +499,26 @@ async def user_list_update(socket, room_id, message_type):
     )
 
 @database_sync_to_async
-def save_message(room, user, content):
-    ChatMessage.objects.create(room=room, user=user, content=content)
+def save_message(room_id, user, content):
+    ChatMessage.objects.create(room_id=room_id, user=user, content=content)
 
 @database_sync_to_async
-def get_previous_messages(room, message_limit = 50, time = None):
-    result = ChatMessage.objects.filter(room=room)
+def get_previous_messages(room_id, message_limit=50, time=None):
+    # select_related で画像とユーザーを一度に取ってくる
+    qs = ChatMessage.objects.filter(room_id=room_id).select_related('user', 'image')
     if time:
-        result = result.filter(timestamp__gte = timezone.now() - timedelta(minutes=time))
-    return list(result.order_by('-timestamp')[:message_limit][::-1])
+        qs = qs.filter(timestamp__gte=timezone.now() - timedelta(minutes=time))
+    
+    messages = list(qs.order_by('-timestamp')[:message_limit][::-1])
+    
+    # データをシリアライズして返す（ループ内でのDBアクセスを排除）
+    return [{
+        "sender": m.user.account_id,
+        "content": m.content,
+        "timestamp": str(m.timestamp),
+        "image_url": m.image.image.url if m.image else "",
+        "thumbnail_url": m.image.thumbnail.url if m.image and m.image.thumbnail else ""
+    } for m in messages]
 
 @database_sync_to_async
 def get_all_sockets():

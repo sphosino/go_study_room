@@ -56,15 +56,16 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
         // 接続タイムアウトを長めに設定
         iceCheckingTimeout: 15000  // ICEチェックのタイムアウト
     };
-    socket.registerFunction('your_account_id',(data)=>{
-        window.account_id = data.account_id
+    socket.registerFunction('your_socket_id',(data)=>{
+        console.log(`自分のsocket_idを取得しました -> ${data.socket_id}`)
+        window.socket_id = data.socket_id
     });
     socket.registerFunction('join',async(data)=>{
         console.log('joined -> ', data.name)
         chat_add(chatLog, data.name + ' さんが入室しました',"div")
         user_list_update_socket(socket);
-        if (data.name === window.account_id) return;
-        await createOffer(data.name)
+        if (data.socket_id === window.socket_id) return;
+        await createOffer(data.socket_id)
     })
     socket.registerFunction('make_go_board',(data)=>{
         console.log(`作るよ碁盤、このサイズ→:${data.y} ${data.x}`)
@@ -182,9 +183,9 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
             peerConnection.addTrack(track, localStream);
         });
     }
-    function createNewRTCPeerConnection(accountId){
+    function createNewRTCPeerConnection(socketId){
         const peerConnection = new RTCPeerConnection(configuration);
-        peerConnections[accountId] = peerConnection;
+        peerConnections[socketId] = peerConnection;
 
         peerConnection.ontrack = event =>{
             console.log('ontrack')
@@ -224,7 +225,7 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
                 socket.send(JSON.stringify({
                     'client_message_type': 'p2pIceCandidate',
                     'candidate': event.candidate,
-                    'for': accountId
+                    'for': socketId
                 }));
             }else{
                 console.log("ICE候補の収集が完了しました。");
@@ -251,30 +252,30 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
         };
         return peerConnection
     }
-    async function createOffer(accountId) {
+    async function createOffer(socketId) {
         console.log('called createOffer')
     
         await getAudioStream();
     
-        const peerConnection = createNewRTCPeerConnection(accountId);
+        const peerConnection = createNewRTCPeerConnection(socketId);
 
         setStream(peerConnection)
         const offer = await peerConnection.createOffer()
         await peerConnection.setLocalDescription(offer);
                 
-        console.log('sending offer ->', accountId)
+        console.log('sending offer ->', socketId)
         socket.send(JSON.stringify({
             'client_message_type': 'p2pOffer',
             'offer': peerConnection.localDescription,
-            'for': accountId //オファーを出す相手
+            'for': socketId //オファーを出す相手
         }));
     }
-    async function handleAnswer(accountId, answer) {
+    async function handleAnswer(socketId, answer) {
         console.log('アンサーハンドラが呼ばれました')
     
-        const peerConnection = peerConnections[accountId]
+        const peerConnection = peerConnections[socketId]
         if(!peerConnection){
-            console.log('予期しないアンサー', accountId)
+            console.log('予期しないアンサー', socketId)
             return;
         }
         console.log('Setting remote description...');
@@ -292,10 +293,10 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
             handleIceCandidate(queue_candidate[0],queue_candidate[1])
         }
     }
-    async function handleOffer(accountId, offer) {
-        console.log('オファーハンドラが呼ばれました sender', accountId)
+    async function handleOffer(socketId, offer) {
+        console.log('オファーハンドラが呼ばれました sender', socketId)
         //オファーが来たらすぐにピアコネクションを登録して、次に来るICEこうほに対して準備
-        const peerConnection = createNewRTCPeerConnection(accountId);
+        const peerConnection = createNewRTCPeerConnection(socketId);
         // 受信したオファーをリモートSDPとしてセット
         console.log("before setRemoteDescription")
         await peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
@@ -311,37 +312,37 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
         const answer = await peerConnection.createAnswer()
         await peerConnection.setLocalDescription(answer)
 
-        console.log('sendding answer -> ', accountId)
+        console.log('sendding answer -> ', socketId)
         socket.send(JSON.stringify({
             'client_message_type': 'p2pAnswer',
             'answer': peerConnection.localDescription,
-            'for': accountId, //answerを返す相手
+            'for': socketId, //answerを返す相手
         }));
 
     }
-    function handleIceCandidate(accountId, candidate) {
+    function handleIceCandidate(socketId, candidate) {
         console.log('ICE候補ハンドラが呼ばれました')
-        const peerConnection = peerConnections[accountId];
+        const peerConnection = peerConnections[socketId];
     
         if (peerConnection.signalingState === 'stable'){
             peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
                 .then(() => {
-                    console.log(`ICE candidate added for account ${accountId}`);
+                    console.log(`ICE candidate added for socket ${socketId}`);
                 })
                 .catch(error => {
                     console.error("Error adding ICE candidate:", error);
                 });
         }else{
-            iceCandidateQueue.push([accountId,candidate])
+            iceCandidateQueue.push([socketId,candidate])
         }
     }
-    async function createOfferWithDataChannel(accountId) {
+    async function createOfferWithDataChannel(socketId) {
         console.log("データチャンネルを作るよ")
-        if (!peerConnections[accountId]) {
+        if (!peerConnections[socketId]) {
             await getAudioStream();
-            setStream(createNewRTCPeerConnection(accountId))
+            setStream(createNewRTCPeerConnection(socketId))
         }
-        const peerConnection = peerConnections[accountId]
+        const peerConnection = peerConnections[socketId]
         // 1. データチャネルを作成
         const dataChannel = peerConnection.createDataChannel("myDataChannel");
         dataChannel.onmessage = (event) =>{
@@ -355,14 +356,14 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
         await peerConnection.setLocalDescription(offer);
       
         // 4. オファーを相手に送信
-        sendOfferToRemote(accountId,peerConnection);  
+        sendOfferToRemote(socketId,peerConnection);  
     }
-    function sendOfferToRemote(accountId,peerConnection){
-        console.log('@@@sending offer ->', accountId)
+    function sendOfferToRemote(socketId,peerConnection){
+        console.log('@@@sending offer ->', socketId)
         socket.send(JSON.stringify({
             'client_message_type': 'p2pOffer',
             'offer': peerConnection.localDescription,
-            'for': accountId //オファーを出す相手
+            'for': socketId //オファーを出す相手
         }));
     }
     processMessageQueue();

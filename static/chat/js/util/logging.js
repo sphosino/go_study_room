@@ -15,7 +15,5 @@ export default function logging_server_message(message){
 		}
 		logstyle += color + size
 	}
-
 	console.log(`%c${sender} ->  ${message.server_message_type}`, logstyle)
-
 }
