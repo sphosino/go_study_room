@@ -422,17 +422,16 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
                 await self.p2psend_message(client_message_type, text_data_json)
 
     async def p2psend_message(self, message_type, text_data):
-        logger.info(f"sendp2p_message {message_type}")
         target_socket = text_data.get('for')
         if target_socket:
             text_data['sender'] = self.channel_name
             await self.channel_layer.send(target_socket, {
-                'type': 'send_message',
+                'type': 'receive_from_layer',
                 'server_message_type': message_type,
                 **text_data
             })
-        else:
-            print(f"Error: Socket for account {text_data['for']} not found.")
+    async def receive_from_layer(self, event):
+        await self.send(text_data=json.dumps(event))
 
     async def send_existing_boards(self):
         @database_sync_to_async
