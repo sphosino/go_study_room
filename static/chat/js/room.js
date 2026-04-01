@@ -80,8 +80,14 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
         if (data.board){
             goban_sync(data);
         }
-
+        let lastSendTime = 0;
+        const interval = 30; // 30ミリ秒（1秒間に33回）に制限
         canvas.addEventListener('mousemove',(event)=>{
+            const now = Date.now();
+            if (now - lastSendTime <= interval) {
+                return; // 間引き
+            }
+            lastSendTime = now;
             const rect = canvas.getBoundingClientRect();
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
