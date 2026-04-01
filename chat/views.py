@@ -8,9 +8,8 @@ from .utils import handle_chat_message
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import AccessMixin
-
-from accounts.models import PushSubscription
-import json
+from django.contrib import messages
+from django.shortcuts import redirect
 
 import logging
 logger = logging.getLogger(__name__)
@@ -41,8 +40,12 @@ class LobbyView(AsyncLoginRequiredMixin, View):
 
 class RoomView(AsyncLoginRequiredMixin,View):
 
-    async def get(self, request, roomid):
-        room = await sync_to_async(get_object_or_404)(models.ChatRoom, id = roomid)
+async def get(self, request, roomid):
+        room = await sync_to_async(models.ChatRoom.objects.filter(id=roomid).first)()
+        if not room:
+            messages.error(request, f"部屋番号 {roomid} は見つかりません。")
+            return redirect('chat:lobby')
+            
         return await sync_to_async(render)(request, "room.html", {"room":room})
     
     async def post(self, request, roomid):

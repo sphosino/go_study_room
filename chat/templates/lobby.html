@@ -17,6 +17,15 @@
             <button id="room-list-update">部屋更新！</button>
             <button id="make-room-submit">新規作成！</button>
         </div>
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
         <dialog id = "make-room-modal" >
             <p>部屋名を入力してね！</p>
             <form method="dialog" id = "make-room-form" class="flex flex-col gap-2">
