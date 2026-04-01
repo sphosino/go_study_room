@@ -19,7 +19,7 @@ export const roomNameInput = document.querySelector('#room_name_input')
 export const roomNotify = document.querySelector('#notify_on_create')
 
 //ルーム関連
-export const boardCanvas = document.querySelector("#board-main")
+export const boardCanvas = document.querySelector("#board")
 export const makeBoardModal = document.querySelector('#make-board-modal')
 export const makeBoard = document.querySelector('#makeboard')
 export const inputBoardX = document.querySelector('#input-boardx')

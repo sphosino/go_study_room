@@ -6,6 +6,7 @@ import GoBoard from "./goban/goban.js";
 
 
 let goban; //碁盤用の変数
+const remoteCursors = {}; // ソケットIDごとにリモートカーソルを管理するオブジェクト
 let iceCandidateQueue = []
 let localStream
 toggle_muteAudioButton.addEventListener('click',() => {
@@ -85,16 +86,16 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
             goban.checkOnMouse(y,x);
+            const [px, py] = goban.getMousePosition_percentage(y,x);
             Object.entries(peerConnections).forEach(([socket_id, peerConnection])=>{
                 console.log("A - 接続中のID:", socket_id);
                 const dataChannel = peerConnection.dataChannel__
                 if(dataChannel){
-                    console.log("B")
                     if(dataChannel.readyState === 'open'){
                         dataChannel.send(JSON.stringify({
                             "message_type": "mouse_move",
-                            "x": x,
-                            "y": y
+                            "x": px,
+                            "y": py
                         }))
                     }
                 }
@@ -189,6 +190,17 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
         }
         peerConnection.onconnectionstatechange = event => {
             console.log('Current connection state:', peerConnection.connectionState)
+            // 切断されたら、カーソルを削除
+            if (peerConnection.connectionState === 'disconnected' || 
+                peerConnection.connectionState === 'closed') {
+                
+                const cursor = remoteCursors[socketId];
+                if (cursor) {
+                    cursor.remove();
+                    delete remoteCursors[socketId]; // 管理配列からも削除
+                    console.log(`[${socketId}] のカーソルを削除しました`);
+                }
+            }
         };
 
         peerConnection.oniceconnectionstatechange = () => {
@@ -350,22 +362,54 @@ function setupDataChannel(channel, socketId){
             switch(data.message_type){
                 case 'mouse_move':
                     // 相手のマウス位置を動かす共通処理
-                    //updateOpponentCursor(peerId, data.x, data.y);
-                    console.log(`相手のマウス位置 -> X:${data.x}, Y:${data.y}`);
+                    updateRemoteCursor(socketId, data.y, data.x);
                 break;
                 default:
                     console.log("不明なメッセージタイプ:", data.message_type);
-            }
-            if (data.message_type === 'mouse_move') {
-                // 相手のマウス位置を動かす共通処理
-                //updateOpponentCursor(peerId, data.x, data.y);
-                console.log(`相手のマウス位置 -> X:${data.x}, Y:${data.y}`);
             }
         } catch (e) {
             console.error("メッセージ解析エラー", e);
         }
     };
     channel.onclose = () => {console.log("Data channel closed with socket:", socketId)};
+}
+
+function updateRemoteCursor(socketId, percentageY, percentageX) {
+    let cursor = remoteCursors[socketId];
+
+    // まだその相手のカーソルがなければ作成
+    if (!cursor) {
+cursor = document.createElement('div');
+        cursor.id = `cursor-${socketId}`;
+        cursor.className = 'remote-cursor';
+        
+        // ★変更: JS側で強力に位置とマージンをリセットする
+        cursor.style.position = 'absolute';
+        cursor.style.top = '0px';
+        cursor.style.left = '0px';
+        cursor.style.margin = '0px'; // マージンによる押し出しを無効化
+        cursor.style.pointerEvents = 'none'; // カーソルがクリック判定を邪魔しないようにする
+        
+        boardCanvas.appendChild(cursor);
+        remoteCursors[socketId] = cursor;
+        console.log(`[${socketId}] のカーソルを作成しました`);
+        // 碁盤の親要素（position: relative; であること）に追加
+        boardCanvas.appendChild(cursor);
+        
+        remoteCursors[socketId] = cursor;
+        console.log(`[${socketId}] のカーソルを作成しました`);
+    }
+
+    // ★重要：届いた「割合（%）」を、自分の碁盤サイズ（px）に逆算
+    // 碁盤のインスタンス（goban）から、現在のサイズと位置を取得
+    const actualX = percentageX * goban.sizex + goban.px;
+    const actualY = percentageY * goban.sizey + goban.py;
+
+    // 円の中心が指し示すように、少しずらして配置（transformがオススメ）
+    // transitionが効くように、left/topではなくtransformで動かす
+    const offsetX = cursor.offsetWidth / 2;
+    const offsetY = cursor.offsetHeight / 2;
+    cursor.style.transform = `translate(${actualX - offsetX}px, ${actualY - offsetY}px)`;
 }
 
 function toggle_muteAudio(stream) {

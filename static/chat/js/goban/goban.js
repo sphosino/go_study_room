@@ -37,9 +37,11 @@ export default class GoBoard{
         this.mx = Math.floor((mouseX - this.px) / this.masx);
         this.onMouse = (this.my >= 0 && this.mx >= 0 && this.my < this.y && this.mx < this.x);
     }
-
-    getOpponentTurn(turn = this.turn) {
-        return (turn === GoBoard.BLACK) ? GoBoard.WHITE : GoBoard.BLACK;
+    getMousePosition_percentage(mousey, mousex) {
+        if (!this.onMouse) return [0, 0];
+        const y = (mousey - this.py) / this.sizey;
+        const x = (mousex - this.px) / this.sizex;
+        return [x,y];
     }
 
     isInBounds(y, x) {
@@ -159,7 +161,9 @@ export default class GoBoard{
         this.turn = this.getOpponentTurn(turn);
     }
 
-
+    getOpponentTurn(turn = this.turn) {
+        return (turn === GoBoard.BLACK) ? GoBoard.WHITE : GoBoard.BLACK;
+    }
 
     draw() {
         // 碁盤全体
