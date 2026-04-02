@@ -17,12 +17,14 @@
 /* style.css などに追加 */
 .remote-cursor {
     position: absolute; /* 碁盤（親）の中での絶対位置 */
-    width: 8px;           /* 5pxだと少し小さいかもなので、8pxくらいがオススメ */
-    height: 8px;
-    background-color: rgba(255, 0, 0, 0.8); /* 最初は赤色で */
+    width: 10px;
+    height: 10px;
+    margin:0px; /* マージンによる押し出しを無効化 */
+    left:0px;
+    top:0px;
     border-radius: 50%;   /* これで綺麗な円になる */
     border: 1px solid white; /* 白い枠線をつけると、黒石の上でも見やすい */
-    pointer-events: none;  /* ★超重要：この円がマウスイベントを邪魔しないようにする */
+    pointer-events: none;
     z-index: 10000;         /* 碁石よりも上に表示 */
     
     /* これを入れると、座標更新がパキパキせず、ヌルヌル動く！ */

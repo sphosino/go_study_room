@@ -40,7 +40,7 @@ class LobbyView(AsyncLoginRequiredMixin, View):
 
 class RoomView(AsyncLoginRequiredMixin,View):
 
-async def get(self, request, roomid):
+    async def get(self, request, roomid):
         room = await sync_to_async(models.ChatRoom.objects.filter(id=roomid).first)()
         if not room:
             messages.error(request, f"部屋番号 {roomid} は見つかりません。")

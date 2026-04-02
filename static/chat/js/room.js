@@ -379,40 +379,33 @@ function setupDataChannel(channel, socketId){
     };
     channel.onclose = () => {console.log("Data channel closed with socket:", socketId)};
 }
-
+function stringToColor(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    // HSL(色相, 彩度, 輝度)
+    const h = Math.abs(hash) % 360;
+    return `hsla(${h}, 70%, 50%, 0.8)`;
+}
 function updateRemoteCursor(socketId, percentageY, percentageX) {
     let cursor = remoteCursors[socketId];
 
     // まだその相手のカーソルがなければ作成
     if (!cursor) {
-cursor = document.createElement('div');
+        cursor = document.createElement('div');
         cursor.id = `cursor-${socketId}`;
         cursor.className = 'remote-cursor';
-        
-        // ★変更: JS側で強力に位置とマージンをリセットする
-        cursor.style.position = 'absolute';
-        cursor.style.top = '0px';
-        cursor.style.left = '0px';
-        cursor.style.margin = '0px'; // マージンによる押し出しを無効化
-        cursor.style.pointerEvents = 'none'; // カーソルがクリック判定を邪魔しないようにする
-        
-        boardCanvas.appendChild(cursor);
-        remoteCursors[socketId] = cursor;
-        console.log(`[${socketId}] のカーソルを作成しました`);
-        // 碁盤の親要素（position: relative; であること）に追加
-        boardCanvas.appendChild(cursor);
-        
-        remoteCursors[socketId] = cursor;
-        console.log(`[${socketId}] のカーソルを作成しました`);
-    }
+        cursor.style.backgroundColor = stringToColor(socketId);
 
+        boardCanvas.appendChild(cursor);
+        remoteCursors[socketId] = cursor;
+        console.log(`[${socketId}] のカーソルを作成しました`);    
+    }
     // ★重要：届いた「割合（%）」を、自分の碁盤サイズ（px）に逆算
     // 碁盤のインスタンス（goban）から、現在のサイズと位置を取得
     const actualX = percentageX * goban.sizex + goban.px;
     const actualY = percentageY * goban.sizey + goban.py;
-
-    // 円の中心が指し示すように、少しずらして配置（transformがオススメ）
-    // transitionが効くように、left/topではなくtransformで動かす
     const offsetX = cursor.offsetWidth / 2;
     const offsetY = cursor.offsetHeight / 2;
     cursor.style.transform = `translate(${actualX - offsetX}px, ${actualY - offsetY}px)`;
