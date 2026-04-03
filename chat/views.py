@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.http import JsonResponse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, redirect
 from django.views import View
 from . import models
 from asgiref.sync import sync_to_async
@@ -9,7 +9,6 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import AccessMixin
 from django.contrib import messages
-from django.shortcuts import redirect
 
 import logging
 logger = logging.getLogger(__name__)

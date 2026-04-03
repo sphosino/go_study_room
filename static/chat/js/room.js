@@ -94,14 +94,27 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
             goban.checkOnMouse(y,x);
             const [px, py] = goban.getMousePosition_percentage(y,x);
             Object.entries(peerConnections).forEach(([socket_id, peerConnection])=>{
-                console.log("A - 接続中のID:", socket_id);
+                console.log("mousemove - 接続中のID:", socket_id);
                 const dataChannel = peerConnection.dataChannel__
                 if(dataChannel){
                     if(dataChannel.readyState === 'open'){
                         dataChannel.send(JSON.stringify({
-                            "message_type": "mouse_move",
+                            "message_type": "mousemove",
                             "x": px,
                             "y": py
+                        }))
+                    }
+                }
+            })
+        })
+        canvas.addEventListener('mouseleave',()=>{
+            Object.entries(peerConnections).forEach(([socket_id, peerConnection])=>{
+                console.log("mouseleave - 接続中のID:", socket_id);
+                const dataChannel = peerConnection.dataChannel__
+                if(dataChannel){
+                    if(dataChannel.readyState === 'open'){
+                        dataChannel.send(JSON.stringify({
+                            "message_type": "mouseleave",
                         }))
                     }
                 }
@@ -366,9 +379,13 @@ function setupDataChannel(channel, socketId){
         try {
             const data = JSON.parse(event.data);
             switch(data.message_type){
-                case 'mouse_move':
+                case 'mousemove':
                     // 相手のマウス位置を動かす共通処理
                     updateRemoteCursor(socketId, data.y, data.x);
+                break;
+                case 'mouseleave':
+                    // 相手がマウスを碁盤から離れたときにカーソルを隠す
+                    hideRemoteCursor(socketId);
                 break;
                 default:
                     console.log("不明なメッセージタイプ:", data.message_type);
@@ -397,10 +414,9 @@ function updateRemoteCursor(socketId, percentageY, percentageX) {
         cursor.id = `cursor-${socketId}`;
         cursor.className = 'remote-cursor';
         cursor.style.backgroundColor = stringToColor(socketId);
-
         boardCanvas.appendChild(cursor);
         remoteCursors[socketId] = cursor;
-        console.log(`[${socketId}] のカーソルを作成しました`);    
+        console.log(`[${socketId}] のカーソルを作成しました`);
     }
     // ★重要：届いた「割合（%）」を、自分の碁盤サイズ（px）に逆算
     // 碁盤のインスタンス（goban）から、現在のサイズと位置を取得
@@ -408,7 +424,35 @@ function updateRemoteCursor(socketId, percentageY, percentageX) {
     const actualY = percentageY * goban.sizey + goban.py;
     const offsetX = cursor.offsetWidth / 2;
     const offsetY = cursor.offsetHeight / 2;
-    cursor.style.transform = `translate(${actualX - offsetX}px, ${actualY - offsetY}px)`;
+    const transformValue = `translate(${actualX - offsetX}px, ${actualY - offsetY}px)`;
+    
+    if(cursor.style.visibility === "hidden"){
+        cursor.style.transition = "none";
+        cursor.style.transform = transformValue;
+        cursor.style.visibility = "visible";
+
+        // ブラウザに「今の状態」を強制的に認識させる（リフローのトリガー）
+        // これをしないと、transition: none と後の設定が同時に処理されてアニメーションが消えません
+        void cursor.offsetHeight; 
+
+        // 次のフレームで通常のトランジションに戻す
+        cursor.style.transition = "";
+    }else{
+        cursor.style.transform = transformValue;
+    }
+}
+function removeRemoteCursor(socketId) {
+    const cursor = remoteCursors[socketId]; 
+    if (cursor) {
+        cursor.remove();
+        delete remoteCursors[socketId];
+    }
+}
+function hideRemoteCursor(socketId) {
+    const cursor = remoteCursors[socketId];
+    if (cursor) {
+        cursor.style.visibility = "hidden";
+    }
 }
 
 function toggle_muteAudio(stream) {
