@@ -82,6 +82,7 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
         }
         let lastSendTime = 0;
         const interval = 30; // 30ミリ秒（1秒間に33回）に制限
+        let is_inside = false;
         canvas.addEventListener('mousemove',(event)=>{
             const now = Date.now();
             if (now - lastSendTime <= interval) {
@@ -92,7 +93,17 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
             goban.checkOnMouse(y,x);
-            const [px, py] = goban.getMousePosition_percentage(y,x);
+            const mpos = goban.getMousePosition_percentage(y,x);
+            if (!mpos){
+                if(is_inside){
+                    is_inside = false;
+                    mouseleaveHandler();
+                }
+                return;
+            }
+            const px = mpos[0];
+            const py = mpos[1];
+            is_inside = true;
             Object.entries(peerConnections).forEach(([socket_id, peerConnection])=>{
                 console.log("mousemove - 接続中のID:", socket_id);
                 const dataChannel = peerConnection.dataChannel__
@@ -107,7 +118,8 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
                 }
             })
         })
-        canvas.addEventListener('mouseleave',()=>{
+        canvas.addEventListener('mouseleave', mouseleaveHandler)
+        function mouseleaveHandler(){
             Object.entries(peerConnections).forEach(([socket_id, peerConnection])=>{
                 console.log("mouseleave - 接続中のID:", socket_id);
                 const dataChannel = peerConnection.dataChannel__
@@ -119,7 +131,7 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
                     }
                 }
             })
-        })
+        }
         canvas.addEventListener('click', () =>{
             if(goban.canMove(goban.my,goban.mx,goban.turn)[0]){
                 socket.send(JSON.stringify({

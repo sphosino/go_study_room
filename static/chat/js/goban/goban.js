@@ -38,7 +38,7 @@ export default class GoBoard{
         this.onMouse = (this.my >= 0 && this.mx >= 0 && this.my < this.y && this.mx < this.x);
     }
     getMousePosition_percentage(mousey, mousex) {
-        if (!this.onMouse) return [0, 0];
+        if (!this.onMouse) return null;
         const y = (mousey - this.py) / this.sizey;
         const x = (mousex - this.px) / this.sizex;
         return [x,y];
