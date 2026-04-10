@@ -30,3 +30,11 @@ a:hover,button:hover{
 #user-list > a, #room-list > a{
     color: #000000 !important;
 }
+
+input, select, textarea, .profile {
+    border: 1px solid #ccc;
+    padding: 8px;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
