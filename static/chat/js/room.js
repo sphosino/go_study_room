@@ -283,8 +283,10 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
             }
             lastSendTime = now;
             const rect = canvas.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
+            const scaleX = canvas.width / rect.width;  
+            const scaleY = canvas.height / rect.height; 
+            const x = (event.clientX - rect.left) * scaleX; 
+            const y = (event.clientY - rect.top) * scaleY; 
             goban.checkOnMouse(y,x);
             const mpos = goban.getMousePosition_percentage(y,x);
             if (!mpos){
