@@ -23,6 +23,13 @@
 			<div id = "position"></div>
 			<div id = "captures"></div>
 			<button type = "button" id = "makeboard">碁盤作成</button>
+			<div id="board-mode-controls" class="board-mode-controls">
+				<button type="button" id="board-mode-alternating" data-board-mode="alternating">交互着手</button>
+				<button type="button" id="board-mode-setup-black" data-board-mode="setup_black">置き石 黒</button>
+				<button type="button" id="board-mode-setup-white" data-board-mode="setup_white">置き石 白</button>
+				<button type="button" id="board-undo">1手戻す</button>
+				<div id="board-mode-label" class="board-mode-label">現在のモード: 交互着手</div>
+			</div>
 			<dialog id = "make-board-modal">
 				<p>碁盤のサイズを決めてね</p>
 				<form method = "dialog" id = "make-board-form">

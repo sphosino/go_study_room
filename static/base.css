@@ -31,7 +31,7 @@ a:hover,button:hover{
     color: #000000 !important;
 }
 
-input[type="text"], textarea, .profile {
+input[type="text"], textarea, .profile {/* テキスト入力と、プロフィール表示 */
     border: 1px solid #ccc;
     padding: 8px;
     border-radius: 4px;

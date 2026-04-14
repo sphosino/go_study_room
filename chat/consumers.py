@@ -369,6 +369,7 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
                         "id" : new_board.id,
                         "y" : y,
                         "x" : x,
+                        "revision": new_board.revision,
                     }
                 
                 board = await make_go_board()
@@ -381,29 +382,67 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
                 x = text_data_json['x']
                 turn = text_data_json['turn']
                 id = text_data_json['id']
+                revision = text_data_json.get('revision')
 
                 @database_sync_to_async
                 def get_go_board():
                     board = GoBoard.objects.get(id = id)
+                    if revision is not None and board.revision != revision:
+                        return False,[] # 古い盤面に対する操作なので弾く
                     if board.turn != turn:
                         return False,[] #同時に操作が来た可能性が高い
                     if board.place_stone(y, x, turn): #ここで盤面の変更とsave()が行われる。変更があればTrueが返ってくる
-                        return True, {
-                            "id": board.id,
-                            "board":board.board,
-                            "turn": board.turn, 
-                            "koY": board.koY,
-                            "koX": board.koX,
-                            "koTurn": board.koTurn,
-                            "black_capture": board.black_capture_count,
-                            "white_capture": board.white_capture_count
-                        }
+                        return True, board.serialize_for_client()
                     return False,[]
                 
                 result, board = await get_go_board()
 
                 if result:
                     await self.send_message_to_group(client_message_type, **board)
+
+            case 'update_board':
+
+                id = text_data_json['id']
+                board_data = text_data_json['board']
+                turn = text_data_json.get('turn')
+                revision = text_data_json.get('revision')
+
+                @database_sync_to_async
+                def update_go_board():
+                    board = GoBoard.objects.get(id=id)
+                    if revision is not None and board.revision != revision:
+                        return False, board.serialize_for_client()
+                    if board.update_board_state(board_data, turn):
+                        return True, board.serialize_for_client()
+                    return False, []
+
+                result, board = await update_go_board()
+
+                if result:
+                    await self.send_message_to_group(client_message_type, **board)
+                elif board:
+                    await self.send_message(client_message_type, **board)
+
+            case 'undo_board':
+
+                id = text_data_json['id']
+                revision = text_data_json.get('revision')
+
+                @database_sync_to_async
+                def undo_go_board():
+                    board = GoBoard.objects.get(id=id)
+                    if revision is not None and board.revision != revision:
+                        return False, board.serialize_for_client()
+                    if board.undo_board_state():
+                        return True, board.serialize_for_client()
+                    return False, []
+
+                result, board = await undo_go_board()
+
+                if result:
+                    await self.send_message_to_group(client_message_type, **board)
+                elif board:
+                    await self.send_message(client_message_type, **board)
                     
             case 'p2pOffer' | 'p2pAnswer' | 'p2pIceCandidate':
                 await self.p2psend_message(client_message_type, text_data_json)
@@ -429,17 +468,11 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
         boards = await get_boards()
         print(f"送信するboard数: {len(boards)}")
         for board in boards:
+            board_payload = board.serialize_for_client()
+            board_payload["y"] = board.y
+            board_payload["x"] = board.x
             await self.send_message('make_go_board',
-                id    = board.id,
-                y     = board.y,
-                x     = board.x,
-                board = board.board,
-                turn  = board.turn,
-                koY   = board.koY,
-                koX   = board.koX,
-                koTurn       = board.koTurn,
-                black_capture = board.black_capture_count,
-                white_capture = board.white_capture_count,
+                **board_payload,
             )
 #---------------------------------------------------------------
 async def manage_user_in_chatroom(self, room_id, action):

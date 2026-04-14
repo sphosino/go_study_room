@@ -12,6 +12,7 @@ export default class GoBoard{
         this.px = px; // キャンバス上の表示位置X
         this.changeBoardSize(sizex, sizey, y, x);
         this.turn = GoBoard.BLACK;
+        this.revision = 0;
         this.onMouse = false;
         this.board = Array.from({ length: this.y }, () => Array(this.x).fill(GoBoard.EMPTY));
         this.koTurn = -1;

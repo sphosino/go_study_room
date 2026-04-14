@@ -14,6 +14,29 @@
 #board{
 	position:relative;
 }
+.board-mode-controls{
+	display:flex;
+	flex-wrap:wrap;
+	gap:8px;
+	align-items:center;
+	margin:12px 0;
+}
+.board-mode-controls button{
+	padding:6px 10px;
+	border:1px solid #444;
+	background:#f3efe2;
+	color:#111;
+	cursor:pointer;
+}
+.board-mode-controls button.is-active{
+	background:#1f4f46;
+	color:#fff;
+	border-color:#1f4f46;
+}
+.board-mode-label{
+	font-size:14px;
+	color:#222;
+}
 /* style.css などに追加 */
 .remote-cursor {
     position: absolute; /* 碁盤（親）の中での絶対位置 */

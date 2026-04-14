@@ -24,6 +24,11 @@ export const makeBoardModal = document.querySelector('#make-board-modal')
 export const makeBoard = document.querySelector('#makeboard')
 export const inputBoardX = document.querySelector('#input-boardx')
 export const inputBoardY = document.querySelector('#input-boardy')
+export const boardModeAlternatingButton = document.querySelector('#board-mode-alternating')
+export const boardModeSetupBlackButton = document.querySelector('#board-mode-setup-black')
+export const boardModeSetupWhiteButton = document.querySelector('#board-mode-setup-white')
+export const boardUndoButton = document.querySelector('#board-undo')
+export const boardModeLabel = document.querySelector('#board-mode-label')
 export const toggle_muteAudioButton = document.querySelector('#myvoice-toggle')
 export const remoteAudio = document.getElementById('remoteAudio');
 

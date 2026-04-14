@@ -1,14 +1,20 @@
 //room.js
 import { initializeWebSocket, processMessageQueue, saveInitializedSocket,setReconnect} from "./websocket.js";
-import { chatLog, makeBoardModal, makeBoard, inputBoardX, inputBoardY,boardCanvas, remoteAudio, toggle_muteAudioButton} from "./elements.js";
+import { chatLog, makeBoardModal, makeBoard, inputBoardX, inputBoardY,boardCanvas, remoteAudio, toggle_muteAudioButton, boardModeAlternatingButton, boardModeSetupBlackButton, boardModeSetupWhiteButton, boardUndoButton, boardModeLabel } from "./elements.js";
 import GoBoard from "./goban/goban.js";
 
 
 
 let goban; //碁盤用の変数
+let boardMode = 'alternating';
 const remoteCursors = {}; // ソケットIDごとにリモートカーソルを管理するオブジェクト
 let iceCandidateQueue = []
 let localStream
+const boardModeLabels = {
+    alternating: '交互着手',
+    setup_black: '置き石 黒',
+    setup_white: '置き石 白',
+};
 toggle_muteAudioButton.addEventListener('click',() => {
     toggle_muteAudio(localStream);
 })
@@ -21,6 +27,130 @@ function goban_sync(goban_data){
     goban.koTurn = goban_data.koTurn
     goban.blackCaptureCount = goban_data.black_capture
     goban.whiteCaptureCount = goban_data.white_capture
+
+    goban.revision = goban_data.revision ?? 0
+}
+
+function snapshotGobanState() {
+    return {
+        board: structuredClone(goban.board),
+        turn: goban.turn,
+        koY: goban.koY,
+        koX: goban.koX,
+        koTurn: goban.koTurn,
+        blackCaptureCount: goban.blackCaptureCount,
+        whiteCaptureCount: goban.whiteCaptureCount,
+    };
+}
+
+function restoreGobanState(state) {
+    goban.board = state.board;
+    goban.turn = state.turn;
+    goban.koY = state.koY;
+    goban.koX = state.koX;
+    goban.koTurn = state.koTurn;
+    goban.blackCaptureCount = state.blackCaptureCount;
+    goban.whiteCaptureCount = state.whiteCaptureCount;
+}
+
+function setBoardMode(mode) {
+    boardMode = mode;
+
+    if (boardModeLabel) {
+        boardModeLabel.textContent = `現在のモード: ${boardModeLabels[mode] ?? mode}`;
+    }
+
+    if (boardModeAlternatingButton) {
+        boardModeAlternatingButton.classList.toggle('is-active', mode === 'alternating');
+    }
+    if (boardModeSetupBlackButton) {
+        boardModeSetupBlackButton.classList.toggle('is-active', mode === 'setup_black');
+    }
+    if (boardModeSetupWhiteButton) {
+        boardModeSetupWhiteButton.classList.toggle('is-active', mode === 'setup_white');
+    }
+
+    if (!goban) {
+        return;
+    }
+
+    if (mode === 'setup_black') {
+        goban.turn = GoBoard.BLACK;
+    } else if (mode === 'setup_white') {
+        goban.turn = GoBoard.WHITE;
+    }
+}
+
+function sendBoardUpdate(socket, board, turn) {
+    socket.send(JSON.stringify({
+        'client_message_type':'update_board',
+        'board': board,
+        'turn' : turn,
+        'id': goban.id,
+        'revision': goban.revision,
+    }));
+}
+
+function handleAlternatingBoardClick(socket) {
+    if (!goban || !goban.onMouse) {
+        return;
+    }
+
+    if (goban.canMove(goban.my, goban.mx, goban.turn)[0]) {
+        const previousState = snapshotGobanState();
+        goban.addStone(true, goban.turn);
+
+        sendBoardUpdate(socket, goban.board, goban.turn);
+
+        restoreGobanState(previousState);
+    } else {
+        console.log("そこには置けません")
+    }
+}
+
+function handleSetupBoardClick(socket, stoneColor) {
+    if (!goban || !goban.onMouse) {
+        return;
+    }
+    if (!goban.isInBounds(goban.my, goban.mx)) {
+        return;
+    }
+    if (goban.board[goban.my][goban.mx] !== GoBoard.EMPTY) {
+        console.log("そこにはすでに石があります");
+        return;
+    }
+
+    const nextBoard = structuredClone(goban.board);
+    nextBoard[goban.my][goban.mx] = stoneColor;
+    sendBoardUpdate(socket, nextBoard, stoneColor);
+}
+
+function handleBoardClick(socket) {
+    switch (boardMode) {
+        case 'alternating':
+            handleAlternatingBoardClick(socket);
+            break;
+        case 'setup_black':
+            handleSetupBoardClick(socket, GoBoard.BLACK);
+            break;
+        case 'setup_white':
+            handleSetupBoardClick(socket, GoBoard.WHITE);
+            break;
+        default:
+            console.log(`未対応の碁盤モードです: ${boardMode}`);
+    }
+}
+
+function requestUndoBoard(socket) {
+    if (!goban) {
+        return;
+    }
+
+    socket.send(JSON.stringify({
+        'client_message_type': 'undo_board',
+        'id': goban.id,
+        'revision': goban.revision,
+    }));
 }
 
 initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
@@ -34,6 +164,8 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
 
 	const chat_add = chat_js.chat_add
 	const user_list_update_socket = userlist_js.user_list_update_socket
+
+    setBoardMode(boardMode);
 
     const peerConnections = {}; // ソケットIDごとにRTCPeerConnectionを保持するオブジェクト
     const configuration = {
@@ -133,20 +265,16 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
             })
         }
         canvas.addEventListener('click', () =>{
-            if(goban.canMove(goban.my,goban.mx,goban.turn)[0]){
-                socket.send(JSON.stringify({
-                    'client_message_type':'place_stone',
-                    'x' : goban.mx,
-                    'y' : goban.my,
-                    'turn' : goban.turn,
-                    'id': goban.id
-                }))
-            }else{
-                console.log("そこには置けません")
-            }
+            handleBoardClick(socket);
         })
     });
     socket.registerFunction('place_stone',(data)=>{
+        goban_sync(data)
+    })
+    socket.registerFunction('update_board',(data)=>{
+        goban_sync(data)
+    })
+    socket.registerFunction('undo_board',(data)=>{
         goban_sync(data)
     })
 
@@ -183,6 +311,19 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
     makeBoard.onclick = ()=>{
         makeBoardModal.showModal();
     };
+
+    boardModeAlternatingButton?.addEventListener('click', () => {
+        setBoardMode('alternating');
+    });
+    boardModeSetupBlackButton?.addEventListener('click', () => {
+        setBoardMode('setup_black');
+    });
+    boardModeSetupWhiteButton?.addEventListener('click', () => {
+        setBoardMode('setup_white');
+    });
+    boardUndoButton?.addEventListener('click', () => {
+        requestUndoBoard(socket);
+    });
     
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         console.log("このブラウザはgetUserMediaをサポートしています");

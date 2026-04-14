@@ -3,6 +3,7 @@ from accounts.models import CustomUser
 from django.core.files.storage import default_storage
 from PIL import Image
 import os
+from copy import deepcopy
 from io import BytesIO
 from django.core.files.base import ContentFile
 # Create your models here.
@@ -96,6 +97,8 @@ class GoBoard(models.Model):
     y = models.IntegerField()  # 行の数
     x = models.IntegerField()  # 列の数
     turn = models.IntegerField(default=BLACK)  # 現在のターン
+    revision = models.IntegerField(default=0)  # 盤面更新ごとの世代番号
+    history = models.JSONField(default=list)  # undo用の履歴
     koY = models.IntegerField(default=-1)  # コウのY座標
     koX = models.IntegerField(default=-1)  # コウのX座標
     koTurn = models.IntegerField(default=-1)  # コウのターン
@@ -120,6 +123,76 @@ class GoBoard(models.Model):
         if not self.board:
             self.initialize_board()
         super().save(*args, **kwargs)
+
+    def get_state_snapshot(self):
+        return {
+            "board": deepcopy(self.board),
+            "turn": self.turn,
+            "koY": self.koY,
+            "koX": self.koX,
+            "koTurn": self.koTurn,
+            "black_capture": self.black_capture_count,
+            "white_capture": self.white_capture_count,
+        }
+
+    def restore_state_snapshot(self, state):
+        self.board = state["board"]
+        self.turn = state["turn"]
+        self.koY = state["koY"]
+        self.koX = state["koX"]
+        self.koTurn = state["koTurn"]
+        self.black_capture_count = state["black_capture"]
+        self.white_capture_count = state["white_capture"]
+
+    def push_history(self):
+        self.history.append(self.get_state_snapshot())
+
+    def serialize_for_client(self):
+        return {
+            "id": self.id,
+            "board": self.board,
+            "turn": self.turn,
+            "revision": self.revision,
+            "koY": self.koY,
+            "koX": self.koX,
+            "koTurn": self.koTurn,
+            "black_capture": self.black_capture_count,
+            "white_capture": self.white_capture_count,
+        }
+
+    def has_valid_board_shape(self, board):
+        if not isinstance(board, list) or len(board) != self.y:
+            return False
+        for row in board:
+            if not isinstance(row, list) or len(row) != self.x:
+                return False
+            for cell in row:
+                if cell not in (EMPTY, BLACK, WHITE):
+                    return False
+        return True
+
+    def update_board_state(self, board, turn=None):
+        if not self.has_valid_board_shape(board):
+            return False
+
+        self.push_history()
+        self.board = board
+        if turn in (BLACK, WHITE):
+            self.turn = turn
+
+        self.revision += 1
+        self.save()
+        return True
+
+    def undo_board_state(self):
+        if not self.history:
+            return False
+
+        previous_state = self.history.pop()
+        self.restore_state_snapshot(previous_state)
+        self.revision += 1
+        self.save()
+        return True
 
     @staticmethod
     def get_opponent_turn(turn):
@@ -238,6 +311,7 @@ class GoBoard(models.Model):
         success, captured_stones = self.can_move(y, x, t)
         
         if success:
+            self.push_history()
             self.board[y][x] = t
             for get_y, get_x in captured_stones:
                 if self.board[get_y][get_x] != EMPTY: #被りがあり得るので石があった時だけカウントするよ
@@ -249,6 +323,7 @@ class GoBoard(models.Model):
                         
             self.update_to_ko_state(captured_stones, t)
             self.switch_turn(t)
+            self.revision += 1
             self.save()
             
         #ボードに変更があったかを返す
