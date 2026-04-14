@@ -3,6 +3,12 @@
 	background-color: #888888;
 	min-height:200px;
 }
+.room-layout{
+	max-width: 100%;
+}
+.room-chat-column{
+	flex: 1 1 0;
+}
 .link-userlist{
 	display:block
 }
@@ -12,19 +18,27 @@
 }
 
 #board-main{
-	max-width: 560px;
+	flex: 0 1 400px;
+	max-width: 100%;
 }
 
 #board{
 	position:relative;
+	width: min(100%, 400px);
+}
+#board canvas{
+	display:block;
+	width:100%;
+	height:auto;
 }
 .board-mode-controls{
 	display:grid;
-	grid-template-columns: repeat(auto-fit, minmax(96px, max-content));
+	grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
 	gap:8px;
 	align-items:stretch;
 	margin:12px 0;
 	max-width: 100%;
+	width:min(100%, 400px);
 }
 .board-mode-controls button{
 	padding:6px 10px;
@@ -32,7 +46,8 @@
 	background:linear-gradient(180deg, #fbf7ea 0%, #ece3c8 100%);
 	color:#1f1b12;
 	cursor:pointer;
-	white-space:nowrap;
+	white-space:normal;
+	word-break:keep-all;
 	border-radius:10px;
 	box-shadow:0 1px 0 rgba(255,255,255,0.85) inset, 0 1px 2px rgba(0,0,0,0.08);
 	font-weight:600;
@@ -57,7 +72,14 @@
 	font-weight:700;
 	padding-top:4px;
 }
-/* style.css などに追加 */
+#makeboard{
+	display:block;
+	margin-bottom:12px;
+}
+#position,
+#captures{
+	width:min(100%, 400px);
+}
 .remote-cursor {
     position: absolute; /* 碁盤（親）の中での絶対位置 */
     width: 10px;
@@ -72,4 +94,9 @@
     
     /* これを入れると、座標更新がパキパキせず、ヌルヌル動く！ */
     transition: transform 0.05s linear; 
+}
+@media (max-width: 1279px){
+	#board-main{
+		flex-basis: auto;
+	}
 }

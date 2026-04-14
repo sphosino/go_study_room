@@ -264,8 +264,8 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
     socket.registerFunction('make_go_board',(data)=>{
         console.log(`作るよ碁盤、このサイズ→:${data.y} ${data.x}`)
         const canvas = document.createElement('canvas')
-        canvas.width = 640
-        canvas.height = 480
+        canvas.width = 400
+        canvas.height = 400
         boardCanvas.appendChild(canvas)
 
         goban = new GoBoard(canvas.getContext("2d"),data.id,400,400,data.y,data.x,0,0);
