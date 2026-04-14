@@ -99,6 +99,7 @@ class GoBoard(models.Model):
     turn = models.IntegerField(default=BLACK)  # 現在のターン
     revision = models.IntegerField(default=0)  # 盤面更新ごとの世代番号
     history = models.JSONField(default=list)  # undo用の履歴
+    redo_history = models.JSONField(default=list)  # redo用の履歴
     koY = models.IntegerField(default=-1)  # コウのY座標
     koX = models.IntegerField(default=-1)  # コウのX座標
     koTurn = models.IntegerField(default=-1)  # コウのターン
@@ -147,6 +148,12 @@ class GoBoard(models.Model):
     def push_history(self):
         self.history.append(self.get_state_snapshot())
 
+    def push_redo_history(self):
+        self.redo_history.append(self.get_state_snapshot())
+
+    def clear_redo_history(self):
+        self.redo_history = []
+
     def serialize_for_client(self):
         return {
             "id": self.id,
@@ -176,6 +183,7 @@ class GoBoard(models.Model):
             return False
 
         self.push_history()
+        self.clear_redo_history()
         self.board = board
         if turn in (BLACK, WHITE):
             self.turn = turn
@@ -188,8 +196,20 @@ class GoBoard(models.Model):
         if not self.history:
             return False
 
+        self.push_redo_history()
         previous_state = self.history.pop()
         self.restore_state_snapshot(previous_state)
+        self.revision += 1
+        self.save()
+        return True
+
+    def redo_board_state(self):
+        if not self.redo_history:
+            return False
+
+        self.push_history()
+        next_state = self.redo_history.pop()
+        self.restore_state_snapshot(next_state)
         self.revision += 1
         self.save()
         return True
@@ -312,6 +332,7 @@ class GoBoard(models.Model):
         
         if success:
             self.push_history()
+            self.clear_redo_history()
             self.board[y][x] = t
             for get_y, get_x in captured_stones:
                 if self.board[get_y][get_x] != EMPTY: #被りがあり得るので石があった時だけカウントするよ

@@ -443,6 +443,27 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
                     await self.send_message_to_group(client_message_type, **board)
                 elif board:
                     await self.send_message(client_message_type, **board)
+
+            case 'redo_board':
+
+                id = text_data_json['id']
+                revision = text_data_json.get('revision')
+
+                @database_sync_to_async
+                def redo_go_board():
+                    board = GoBoard.objects.get(id=id)
+                    if revision is not None and board.revision != revision:
+                        return False, board.serialize_for_client()
+                    if board.redo_board_state():
+                        return True, board.serialize_for_client()
+                    return False, []
+
+                result, board = await redo_go_board()
+
+                if result:
+                    await self.send_message_to_group(client_message_type, **board)
+                elif board:
+                    await self.send_message(client_message_type, **board)
                     
             case 'p2pOffer' | 'p2pAnswer' | 'p2pIceCandidate':
                 await self.p2psend_message(client_message_type, text_data_json)

@@ -30,6 +30,7 @@ export const boardModeSetupWhiteButton = document.querySelector('#board-mode-set
 export const boardModeRemoveStoneButton = document.querySelector('#board-mode-remove-stone')
 export const boardModeRemoveGroupButton = document.querySelector('#board-mode-remove-group')
 export const boardUndoButton = document.querySelector('#board-undo')
+export const boardRedoButton = document.querySelector('#board-redo')
 export const boardModeLabel = document.querySelector('#board-mode-label')
 export const toggle_muteAudioButton = document.querySelector('#myvoice-toggle')
 export const remoteAudio = document.getElementById('remoteAudio');

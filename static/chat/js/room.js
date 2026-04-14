@@ -1,6 +1,6 @@
 //room.js
 import { initializeWebSocket, processMessageQueue, saveInitializedSocket,setReconnect} from "./websocket.js";
-import { chatLog, makeBoardModal, makeBoard, inputBoardX, inputBoardY,boardCanvas, remoteAudio, toggle_muteAudioButton, boardModeAlternatingButton, boardModeSetupBlackButton, boardModeSetupWhiteButton, boardModeRemoveStoneButton, boardModeRemoveGroupButton, boardUndoButton, boardModeLabel } from "./elements.js";
+import { chatLog, makeBoardModal, makeBoard, inputBoardX, inputBoardY,boardCanvas, remoteAudio, toggle_muteAudioButton, boardModeAlternatingButton, boardModeSetupBlackButton, boardModeSetupWhiteButton, boardModeRemoveStoneButton, boardModeRemoveGroupButton, boardUndoButton, boardRedoButton, boardModeLabel } from "./elements.js";
 import GoBoard from "./goban/goban.js";
 
 
@@ -202,6 +202,18 @@ function requestUndoBoard(socket) {
     }));
 }
 
+function requestRedoBoard(socket) {
+    if (!goban) {
+        return;
+    }
+
+    socket.send(JSON.stringify({
+        'client_message_type': 'redo_board',
+        'id': goban.id,
+        'revision': goban.revision,
+    }));
+}
+
 initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
 	saveInitializedSocket(socket); 
 	const[chat_js,userlist_js] = await Promise.all([
@@ -326,6 +338,9 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
     socket.registerFunction('undo_board',(data)=>{
         goban_sync(data)
     })
+    socket.registerFunction('redo_board',(data)=>{
+        goban_sync(data)
+    })
 
     socket.registerFunction('p2pOffer', async (data)=>{
         console.log('オファーハンドラを呼びます')
@@ -368,6 +383,9 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
     }
     boardUndoButton?.addEventListener('click', () => {
         requestUndoBoard(socket);
+    });
+    boardRedoButton?.addEventListener('click', () => {
+        requestRedoBoard(socket);
     });
     
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {

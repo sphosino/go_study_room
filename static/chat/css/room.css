@@ -11,31 +11,50 @@
 	color:#000000;
 }
 
+#board-main{
+	max-width: 560px;
+}
+
 #board{
 	position:relative;
 }
 .board-mode-controls{
-	display:flex;
-	flex-wrap:wrap;
+	display:grid;
+	grid-template-columns: repeat(auto-fit, minmax(96px, max-content));
 	gap:8px;
-	align-items:center;
+	align-items:stretch;
 	margin:12px 0;
+	max-width: 100%;
 }
 .board-mode-controls button{
 	padding:6px 10px;
-	border:1px solid #444;
-	background:#f3efe2;
-	color:#111;
+	border:1px solid #8f866e;
+	background:linear-gradient(180deg, #fbf7ea 0%, #ece3c8 100%);
+	color:#1f1b12;
 	cursor:pointer;
+	white-space:nowrap;
+	border-radius:10px;
+	box-shadow:0 1px 0 rgba(255,255,255,0.85) inset, 0 1px 2px rgba(0,0,0,0.08);
+	font-weight:600;
+	transition:transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+.board-mode-controls button:hover{
+	border-color:#6f654f;
+	box-shadow:0 1px 0 rgba(255,255,255,0.9) inset, 0 3px 8px rgba(0,0,0,0.12);
 }
 .board-mode-controls button.is-active{
-	background:#1f4f46;
+	background:linear-gradient(180deg, #255f56 0%, #173c37 100%);
 	color:#fff;
-	border-color:#1f4f46;
+	border-color:#0f2a26;
+	box-shadow:0 0 0 3px rgba(31,79,70,0.2), 0 6px 14px rgba(23,60,55,0.28);
+	transform:translateY(-1px);
 }
 .board-mode-label{
+	grid-column: 1 / -1;
 	font-size:14px;
-	color:#222;
+	color:#1f4f46;
+	font-weight:700;
+	padding-top:4px;
 }
 /* style.css などに追加 */
 .remote-cursor {
