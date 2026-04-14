@@ -49,6 +49,50 @@ export default class GoBoard{
         return y >= 0 && x >= 0 && y < this.y && x < this.x;
     }
 
+    collectConnectedStones(y, x) {
+        if (!this.isInBounds(y, x)) {
+            return [];
+        }
+
+        const turn = this.board[y][x];
+        if (turn === GoBoard.EMPTY) {
+            return [];
+        }
+
+        const stack = [[y, x]];
+        const visited = Array.from({ length: this.y }, () => Array(this.x).fill(false));
+        const stones = [];
+
+        while (stack.length > 0) {
+            const [currentY, currentX] = stack.pop();
+            if (visited[currentY][currentX]) {
+                continue;
+            }
+
+            visited[currentY][currentX] = true;
+            stones.push([currentY, currentX]);
+
+            for (let i = 0; i < 4; i++) {
+                const nextY = currentY + GoBoard.DIRECTIONS_Y[i];
+                const nextX = currentX + GoBoard.DIRECTIONS_X[i];
+
+                if (!this.isInBounds(nextY, nextX)) {
+                    continue;
+                }
+                if (visited[nextY][nextX]) {
+                    continue;
+                }
+                if (this.board[nextY][nextX] !== turn) {
+                    continue;
+                }
+
+                stack.push([nextY, nextX]);
+            }
+        }
+
+        return stones;
+    }
+
     checkKakomare(y, x, turn) {
         const stacky = [y];
         const stackx = [x];

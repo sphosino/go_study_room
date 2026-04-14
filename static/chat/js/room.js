@@ -1,6 +1,6 @@
 //room.js
 import { initializeWebSocket, processMessageQueue, saveInitializedSocket,setReconnect} from "./websocket.js";
-import { chatLog, makeBoardModal, makeBoard, inputBoardX, inputBoardY,boardCanvas, remoteAudio, toggle_muteAudioButton, boardModeAlternatingButton, boardModeSetupBlackButton, boardModeSetupWhiteButton, boardUndoButton, boardModeLabel } from "./elements.js";
+import { chatLog, makeBoardModal, makeBoard, inputBoardX, inputBoardY,boardCanvas, remoteAudio, toggle_muteAudioButton, boardModeAlternatingButton, boardModeSetupBlackButton, boardModeSetupWhiteButton, boardModeRemoveStoneButton, boardModeRemoveGroupButton, boardUndoButton, boardModeLabel } from "./elements.js";
 import GoBoard from "./goban/goban.js";
 
 
@@ -14,6 +14,15 @@ const boardModeLabels = {
     alternating: '交互着手',
     setup_black: '置き石 黒',
     setup_white: '置き石 白',
+    remove_stone: '1個削除',
+    remove_group: '連削除',
+};
+const boardModeButtons = {
+    alternating: boardModeAlternatingButton,
+    setup_black: boardModeSetupBlackButton,
+    setup_white: boardModeSetupWhiteButton,
+    remove_stone: boardModeRemoveStoneButton,
+    remove_group: boardModeRemoveGroupButton,
 };
 toggle_muteAudioButton.addEventListener('click',() => {
     toggle_muteAudio(localStream);
@@ -60,14 +69,8 @@ function setBoardMode(mode) {
         boardModeLabel.textContent = `現在のモード: ${boardModeLabels[mode] ?? mode}`;
     }
 
-    if (boardModeAlternatingButton) {
-        boardModeAlternatingButton.classList.toggle('is-active', mode === 'alternating');
-    }
-    if (boardModeSetupBlackButton) {
-        boardModeSetupBlackButton.classList.toggle('is-active', mode === 'setup_black');
-    }
-    if (boardModeSetupWhiteButton) {
-        boardModeSetupWhiteButton.classList.toggle('is-active', mode === 'setup_white');
+    for (const [buttonMode, button] of Object.entries(boardModeButtons)) {
+        button?.classList.toggle('is-active', mode === buttonMode);
     }
 
     if (!goban) {
@@ -91,8 +94,22 @@ function sendBoardUpdate(socket, board, turn) {
     }));
 }
 
-function handleAlternatingBoardClick(socket) {
+function getCurrentIntersection() {
     if (!goban || !goban.onMouse) {
+        return null;
+    }
+    if (!goban.isInBounds(goban.my, goban.mx)) {
+        return null;
+    }
+    return { y: goban.my, x: goban.mx };
+}
+
+function cloneBoard() {
+    return structuredClone(goban.board);
+}
+
+function handleAlternatingBoardClick(socket) {
+    if (!getCurrentIntersection()) {
         return;
     }
 
@@ -109,36 +126,68 @@ function handleAlternatingBoardClick(socket) {
 }
 
 function handleSetupBoardClick(socket, stoneColor) {
-    if (!goban || !goban.onMouse) {
+    const point = getCurrentIntersection();
+    if (!point) {
         return;
     }
-    if (!goban.isInBounds(goban.my, goban.mx)) {
-        return;
-    }
-    if (goban.board[goban.my][goban.mx] !== GoBoard.EMPTY) {
+    if (goban.board[point.y][point.x] !== GoBoard.EMPTY) {
         console.log("そこにはすでに石があります");
         return;
     }
 
-    const nextBoard = structuredClone(goban.board);
-    nextBoard[goban.my][goban.mx] = stoneColor;
+    const nextBoard = cloneBoard();
+    nextBoard[point.y][point.x] = stoneColor;
     sendBoardUpdate(socket, nextBoard, stoneColor);
 }
 
-function handleBoardClick(socket) {
-    switch (boardMode) {
-        case 'alternating':
-            handleAlternatingBoardClick(socket);
-            break;
-        case 'setup_black':
-            handleSetupBoardClick(socket, GoBoard.BLACK);
-            break;
-        case 'setup_white':
-            handleSetupBoardClick(socket, GoBoard.WHITE);
-            break;
-        default:
-            console.log(`未対応の碁盤モードです: ${boardMode}`);
+function handleRemoveStoneClick(socket) {
+    const point = getCurrentIntersection();
+    if (!point) {
+        return;
     }
+    if (goban.board[point.y][point.x] === GoBoard.EMPTY) {
+        console.log("そこには石がありません");
+        return;
+    }
+
+    const nextBoard = cloneBoard();
+    nextBoard[point.y][point.x] = GoBoard.EMPTY;
+    sendBoardUpdate(socket, nextBoard, goban.turn);
+}
+
+function handleRemoveGroupClick(socket) {
+    const point = getCurrentIntersection();
+    if (!point) {
+        return;
+    }
+    if (goban.board[point.y][point.x] === GoBoard.EMPTY) {
+        console.log("そこには石がありません");
+        return;
+    }
+
+    const nextBoard = cloneBoard();
+    const connectedStones = goban.collectConnectedStones(point.y, point.x);
+    for (const [y, x] of connectedStones) {
+        nextBoard[y][x] = GoBoard.EMPTY;
+    }
+    sendBoardUpdate(socket, nextBoard, goban.turn);
+}
+
+const boardModeHandlers = {
+    alternating: handleAlternatingBoardClick,
+    setup_black: (socket) => handleSetupBoardClick(socket, GoBoard.BLACK),
+    setup_white: (socket) => handleSetupBoardClick(socket, GoBoard.WHITE),
+    remove_stone: handleRemoveStoneClick,
+    remove_group: handleRemoveGroupClick,
+};
+
+function handleBoardClick(socket) {
+    const handler = boardModeHandlers[boardMode];
+    if (!handler) {
+        console.log(`未対応の碁盤モードです: ${boardMode}`);
+        return;
+    }
+    handler(socket);
 }
 
 function requestUndoBoard(socket) {
@@ -312,15 +361,11 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
         makeBoardModal.showModal();
     };
 
-    boardModeAlternatingButton?.addEventListener('click', () => {
-        setBoardMode('alternating');
-    });
-    boardModeSetupBlackButton?.addEventListener('click', () => {
-        setBoardMode('setup_black');
-    });
-    boardModeSetupWhiteButton?.addEventListener('click', () => {
-        setBoardMode('setup_white');
-    });
+    for (const [mode, button] of Object.entries(boardModeButtons)) {
+        button?.addEventListener('click', () => {
+            setBoardMode(mode);
+        });
+    }
     boardUndoButton?.addEventListener('click', () => {
         requestUndoBoard(socket);
     });
