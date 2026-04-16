@@ -72,6 +72,19 @@
 	font-weight:700;
 	padding-top:4px;
 }
+/* Undo/Redoボタンのスタイル（アクション用） */
+#board-undo,
+#board-redo {
+    background:linear-gradient(180deg, #e3f2fd 0%, #bbdefb 100%);
+    border-color:#64b5f6;
+    color:#1565c0;
+}
+#board-undo:hover,
+#board-redo:hover {
+    border-color:#2196f3;
+    background:linear-gradient(180deg, #bbdefb 0%, #90caf9 100%);
+    box-shadow:0 1px 0 rgba(255,255,255,0.9) inset, 0 3px 8px rgba(33,150,243,0.2);
+}
 #makeboard{
 	display:block;
 	margin-bottom:12px;
@@ -88,11 +101,10 @@
     left:0px;
     top:0px;
     border-radius: 50%;   /* これで綺麗な円になる */
-    border: 1px solid white; /* 白い枠線をつけると、黒石の上でも見やすい */
+    border: 1px solid white; /* 白い枠線 */
     pointer-events: none;
     z-index: 10000;         /* 碁石よりも上に表示 */
     
-    /* これを入れると、座標更新がパキパキせず、ヌルヌル動く！ */
     transition: transform 0.05s linear; 
 }
 @media (max-width: 1279px){
