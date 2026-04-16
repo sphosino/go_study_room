@@ -2,12 +2,15 @@
 import { initializeWebSocket, processMessageQueue, saveInitializedSocket,setReconnect} from "./websocket.js";
 import { chatLog, makeBoardModal, makeBoard, inputBoardX, inputBoardY,boardCanvas, remoteAudio, toggle_muteAudioButton, boardModeAlternatingButton, boardModeSetupBlackButton, boardModeSetupWhiteButton, boardModeRemoveStoneButton, boardModeRemoveGroupButton, boardUndoButton, boardRedoButton, boardModeLabel } from "./elements.js";
 import GoBoard from "./goban/goban.js";
+import BoardManager from "./managers/BoardManager.js";
+import CursorManager from "./managers/CursorManager.js";
+import MouseEventManager from "./managers/MouseEventManager.js";
 
 
 
-let goban; //碁盤用の変数
+const boardManager = new BoardManager(); // 碁盤管理
+const cursorManager = new CursorManager(boardCanvas); // カーソル管理
 let boardMode = 'alternating';
-const remoteCursors = {}; // ソケットIDごとにリモートカーソルを管理するオブジェクト
 let iceCandidateQueue = []
 let localStream
 const boardModeLabels = {
@@ -27,39 +30,118 @@ const boardModeButtons = {
 toggle_muteAudioButton.addEventListener('click',() => {
     toggle_muteAudio(localStream);
 })
-function goban_sync(goban_data){
-    console.log(goban_data)
-    goban.board = goban_data.board
-    goban.turn = goban_data.turn
-    goban.koY = goban_data.koY
-    goban.koX = goban_data.koX
-    goban.koTurn = goban_data.koTurn
-    goban.blackCaptureCount = goban_data.black_capture
-    goban.whiteCaptureCount = goban_data.white_capture
 
-    goban.revision = goban_data.revision ?? 0
+// ボード操作関数
+
+function sendBoardUpdate(socket, boardId, board, turn) {
+    const goban = boardManager.getBoard(boardId);
+    if (!goban) return;
+    
+    socket.send(JSON.stringify({
+        'client_message_type':'update_board',
+        'board': board,
+        'turn' : turn,
+        'id': boardId,
+        'revision': goban.revision,
+    }));
 }
 
-function snapshotGobanState() {
-    return {
-        board: structuredClone(goban.board),
-        turn: goban.turn,
-        koY: goban.koY,
-        koX: goban.koX,
-        koTurn: goban.koTurn,
-        blackCaptureCount: goban.blackCaptureCount,
-        whiteCaptureCount: goban.whiteCaptureCount,
-    };
+function handleAlternatingBoardClick(socket, boardId) {
+    const intersection = boardManager.getCurrentIntersection(boardId);
+    if (!intersection) {
+        return;
+    }
+
+    const goban = boardManager.getBoard(boardId);
+    if (!goban) return;
+
+    if (goban.canMove(intersection.y, intersection.x, goban.turn)[0]) {
+        const previousState = boardManager.snapshotBoardState(boardId);
+        goban.addStone(true, goban.turn);
+
+        sendBoardUpdate(socket, boardId, goban.board, goban.turn);
+
+        boardManager.restoreBoardState(boardId, previousState);
+    } else {
+        console.log("そこには置けません")
+    }
 }
 
-function restoreGobanState(state) {
-    goban.board = state.board;
-    goban.turn = state.turn;
-    goban.koY = state.koY;
-    goban.koX = state.koX;
-    goban.koTurn = state.koTurn;
-    goban.blackCaptureCount = state.blackCaptureCount;
-    goban.whiteCaptureCount = state.whiteCaptureCount;
+function handleSetupBoardClick(socket, boardId, stoneColor) {
+    const point = boardManager.getCurrentIntersection(boardId);
+    if (!point) {
+        return;
+    }
+
+    const goban = boardManager.getBoard(boardId);
+    if (!goban) return;
+
+    if (goban.board[point.y][point.x] !== GoBoard.EMPTY) {
+        console.log("そこにはすでに石があります");
+        return;
+    }
+
+    const nextBoard = boardManager.cloneBoard(boardId);
+    nextBoard[point.y][point.x] = stoneColor;
+    sendBoardUpdate(socket, boardId, nextBoard, stoneColor);
+}
+
+function handleRemoveStoneClick(socket, boardId) {
+    const point = boardManager.getCurrentIntersection(boardId);
+    if (!point) {
+        return;
+    }
+
+    const goban = boardManager.getBoard(boardId);
+    if (!goban) return;
+
+    if (goban.board[point.y][point.x] === GoBoard.EMPTY) {
+        console.log("そこには石がありません");
+        return;
+    }
+
+    const nextBoard = boardManager.cloneBoard(boardId);
+    nextBoard[point.y][point.x] = GoBoard.EMPTY;
+    sendBoardUpdate(socket, boardId, nextBoard, goban.turn);
+}
+
+function handleRemoveGroupClick(socket, boardId) {
+    const point = boardManager.getCurrentIntersection(boardId);
+    if (!point) {
+        return;
+    }
+
+    const goban = boardManager.getBoard(boardId);
+    if (!goban) return;
+
+    if (goban.board[point.y][point.x] === GoBoard.EMPTY) {
+        console.log("そこには石がありません");
+        return;
+    }
+
+    const nextBoard = boardManager.cloneBoard(boardId);
+    const connectedStones = goban.collectConnectedStones(point.y, point.x);
+    for (const [y, x] of connectedStones) {
+        nextBoard[y][x] = GoBoard.EMPTY;
+    }
+    sendBoardUpdate(socket, boardId, nextBoard, goban.turn);
+}
+
+const boardModeHandlers = {
+    alternating: (socket, boardId) => handleAlternatingBoardClick(socket, boardId),
+    setup_black: (socket, boardId) => handleSetupBoardClick(socket, boardId, GoBoard.BLACK),
+    setup_white: (socket, boardId) => handleSetupBoardClick(socket, boardId, GoBoard.WHITE),
+    remove_stone: (socket, boardId) => handleRemoveStoneClick(socket, boardId),
+    remove_group: (socket, boardId) => handleRemoveGroupClick(socket, boardId),
+};
+
+function handleBoardClick(socket, boardId) {
+    const handler = boardModeHandlers[boardMode];
+    if (!handler) {
+        console.log(`未対応の碁盤モードです: ${boardMode}`);
+        return;
+    }
+    handler(socket, boardId);
 }
 
 function setBoardMode(mode) {
@@ -73,143 +155,40 @@ function setBoardMode(mode) {
         button?.classList.toggle('is-active', mode === buttonMode);
     }
 
-    if (!goban) {
+    const currentBoard = boardManager.getCurrentBoard();
+    if (!currentBoard) {
         return;
     }
 
     if (mode === 'setup_black') {
-        goban.turn = GoBoard.BLACK;
+        currentBoard.turn = GoBoard.BLACK;
     } else if (mode === 'setup_white') {
-        goban.turn = GoBoard.WHITE;
+        currentBoard.turn = GoBoard.WHITE;
     }
 }
 
-function sendBoardUpdate(socket, board, turn) {
-    socket.send(JSON.stringify({
-        'client_message_type':'update_board',
-        'board': board,
-        'turn' : turn,
-        'id': goban.id,
-        'revision': goban.revision,
-    }));
-}
-
-function getCurrentIntersection() {
-    if (!goban || !goban.onMouse) {
-        return null;
-    }
-    if (!goban.isInBounds(goban.my, goban.mx)) {
-        return null;
-    }
-    return { y: goban.my, x: goban.mx };
-}
-
-function cloneBoard() {
-    return structuredClone(goban.board);
-}
-
-function handleAlternatingBoardClick(socket) {
-    if (!getCurrentIntersection()) {
-        return;
-    }
-
-    if (goban.canMove(goban.my, goban.mx, goban.turn)[0]) {
-        const previousState = snapshotGobanState();
-        goban.addStone(true, goban.turn);
-
-        sendBoardUpdate(socket, goban.board, goban.turn);
-
-        restoreGobanState(previousState);
-    } else {
-        console.log("そこには置けません")
-    }
-}
-
-function handleSetupBoardClick(socket, stoneColor) {
-    const point = getCurrentIntersection();
-    if (!point) {
-        return;
-    }
-    if (goban.board[point.y][point.x] !== GoBoard.EMPTY) {
-        console.log("そこにはすでに石があります");
-        return;
-    }
-
-    const nextBoard = cloneBoard();
-    nextBoard[point.y][point.x] = stoneColor;
-    sendBoardUpdate(socket, nextBoard, stoneColor);
-}
-
-function handleRemoveStoneClick(socket) {
-    const point = getCurrentIntersection();
-    if (!point) {
-        return;
-    }
-    if (goban.board[point.y][point.x] === GoBoard.EMPTY) {
-        console.log("そこには石がありません");
-        return;
-    }
-
-    const nextBoard = cloneBoard();
-    nextBoard[point.y][point.x] = GoBoard.EMPTY;
-    sendBoardUpdate(socket, nextBoard, goban.turn);
-}
-
-function handleRemoveGroupClick(socket) {
-    const point = getCurrentIntersection();
-    if (!point) {
-        return;
-    }
-    if (goban.board[point.y][point.x] === GoBoard.EMPTY) {
-        console.log("そこには石がありません");
-        return;
-    }
-
-    const nextBoard = cloneBoard();
-    const connectedStones = goban.collectConnectedStones(point.y, point.x);
-    for (const [y, x] of connectedStones) {
-        nextBoard[y][x] = GoBoard.EMPTY;
-    }
-    sendBoardUpdate(socket, nextBoard, goban.turn);
-}
-
-const boardModeHandlers = {
-    alternating: handleAlternatingBoardClick,
-    setup_black: (socket) => handleSetupBoardClick(socket, GoBoard.BLACK),
-    setup_white: (socket) => handleSetupBoardClick(socket, GoBoard.WHITE),
-    remove_stone: handleRemoveStoneClick,
-    remove_group: handleRemoveGroupClick,
-};
-
-function handleBoardClick(socket) {
-    const handler = boardModeHandlers[boardMode];
-    if (!handler) {
-        console.log(`未対応の碁盤モードです: ${boardMode}`);
-        return;
-    }
-    handler(socket);
-}
-
-function requestUndoBoard(socket) {
+function requestUndoBoard(socket, boardId) {
+    const goban = boardManager.getBoard(boardId);
     if (!goban) {
         return;
     }
 
     socket.send(JSON.stringify({
         'client_message_type': 'undo_board',
-        'id': goban.id,
+        'id': boardId,
         'revision': goban.revision,
     }));
 }
 
-function requestRedoBoard(socket) {
+function requestRedoBoard(socket, boardId) {
+    const goban = boardManager.getBoard(boardId);
     if (!goban) {
         return;
     }
 
     socket.send(JSON.stringify({
         'client_message_type': 'redo_board',
-        'id': goban.id,
+        'id': boardId,
         'revision': goban.revision,
     }));
 }
@@ -266,82 +245,36 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
         const canvas = document.createElement('canvas')
         canvas.width = 400
         canvas.height = 400
+        canvas.dataset.boardId = data.id
         boardCanvas.appendChild(canvas)
 
-        goban = new GoBoard(canvas.getContext("2d"),data.id,400,400,data.y,data.x,0,0);
-        console.log(data);
+        const goban = new GoBoard(canvas.getContext("2d"),data.id,400,400,data.y,data.x,0,0);
+        goban.canvas = canvas;
+        boardManager.addBoard(data.id, goban);
+        
         if (data.board){
-            goban_sync(data);
+            boardManager.syncBoard(data.id, data);
         }
-        let lastSendTime = 0;
-        const interval = 30; // 30ミリ秒（1秒間に33回）に制限
-        let is_inside = false;
-        canvas.addEventListener('mousemove',(event)=>{
-            const now = Date.now();
-            if (now - lastSendTime <= interval) {
-                return; // 間引き
-            }
-            lastSendTime = now;
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;  
-            const scaleY = canvas.height / rect.height; 
-            const x = (event.clientX - rect.left) * scaleX; 
-            const y = (event.clientY - rect.top) * scaleY; 
-            goban.checkOnMouse(y,x);
-            const mpos = goban.getMousePosition_percentage(y,x);
-            if (!mpos){
-                if(is_inside){
-                    is_inside = false;
-                    mouseleaveHandler();
-                }
-                return;
-            }
-            const px = mpos[0];
-            const py = mpos[1];
-            is_inside = true;
-            Object.entries(peerConnections).forEach(([socket_id, peerConnection])=>{
-                console.log("mousemove - 接続中のID:", socket_id);
-                const dataChannel = peerConnection.dataChannel__
-                if(dataChannel){
-                    if(dataChannel.readyState === 'open'){
-                        dataChannel.send(JSON.stringify({
-                            "message_type": "mousemove",
-                            "x": px,
-                            "y": py
-                        }))
-                    }
-                }
-            })
-        })
-        canvas.addEventListener('mouseleave', mouseleaveHandler)
-        function mouseleaveHandler(){
-            Object.entries(peerConnections).forEach(([socket_id, peerConnection])=>{
-                console.log("mouseleave - 接続中のID:", socket_id);
-                const dataChannel = peerConnection.dataChannel__
-                if(dataChannel){
-                    if(dataChannel.readyState === 'open'){
-                        dataChannel.send(JSON.stringify({
-                            "message_type": "mouseleave",
-                        }))
-                    }
-                }
-            })
-        }
-        canvas.addEventListener('click', () =>{
-            handleBoardClick(socket);
-        })
+
+        // マウスイベントマネージャーを作成
+        const mouseEventManager = new MouseEventManager(canvas, goban, peerConnections, data.id);
+        mouseEventManager.attachListeners();
+        mouseEventManager.setClickHandler((boardId) => {
+            boardManager.currentBoardId = boardId;
+            handleBoardClick(socket, boardId);
+        });
     });
     socket.registerFunction('place_stone',(data)=>{
-        goban_sync(data)
+        boardManager.syncBoard(data.id, data)
     })
     socket.registerFunction('update_board',(data)=>{
-        goban_sync(data)
+        boardManager.syncBoard(data.id, data)
     })
     socket.registerFunction('undo_board',(data)=>{
-        goban_sync(data)
+        boardManager.syncBoard(data.id, data)
     })
     socket.registerFunction('redo_board',(data)=>{
-        goban_sync(data)
+        boardManager.syncBoard(data.id, data)
     })
 
     socket.registerFunction('p2pOffer', async (data)=>{
@@ -384,10 +317,14 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
         });
     }
     boardUndoButton?.addEventListener('click', () => {
-        requestUndoBoard(socket);
+        if (currentBoardId) {
+            requestUndoBoard(socket, currentBoardId);
+        }
     });
     boardRedoButton?.addEventListener('click', () => {
-        requestRedoBoard(socket);
+        if (currentBoardId) {
+            requestRedoBoard(socket, currentBoardId);
+        }
     });
     
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -430,13 +367,7 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
             // 切断されたら、カーソルを削除
             if (peerConnection.connectionState === 'disconnected' || 
                 peerConnection.connectionState === 'closed') {
-                
-                const cursor = remoteCursors[socketId];
-                if (cursor) {
-                    cursor.remove();
-                    delete remoteCursors[socketId]; // 管理配列からも削除
-                    console.log(`[${socketId}] のカーソルを削除しました`);
-                }
+                cursorManager.removeCursor(socketId);
             }
         };
 
@@ -598,12 +529,10 @@ function setupDataChannel(channel, socketId){
             const data = JSON.parse(event.data);
             switch(data.message_type){
                 case 'mousemove':
-                    // 相手のマウス位置を動かす共通処理
-                    updateRemoteCursor(socketId, data.y, data.x);
+                    cursorManager.updateCursor(socketId, data.y, data.x, data.boardId, boardManager);
                 break;
                 case 'mouseleave':
-                    // 相手がマウスを碁盤から離れたときにカーソルを隠す
-                    hideRemoteCursor(socketId);
+                    cursorManager.hideCursor(socketId);
                 break;
                 default:
                     console.log("不明なメッセージタイプ:", data.message_type);
@@ -614,65 +543,6 @@ function setupDataChannel(channel, socketId){
     };
     channel.onclose = () => {console.log("Data channel closed with socket:", socketId)};
 }
-function stringToColor(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    // HSL(色相, 彩度, 輝度)
-    const h = Math.abs(hash) % 360;
-    return `hsla(${h}, 70%, 50%, 0.8)`;
-}
-function updateRemoteCursor(socketId, percentageY, percentageX) {
-    let cursor = remoteCursors[socketId];
-
-    // まだその相手のカーソルがなければ作成
-    if (!cursor) {
-        cursor = document.createElement('div');
-        cursor.id = `cursor-${socketId}`;
-        cursor.className = 'remote-cursor';
-        cursor.style.backgroundColor = stringToColor(socketId);
-        boardCanvas.appendChild(cursor);
-        remoteCursors[socketId] = cursor;
-        console.log(`[${socketId}] のカーソルを作成しました`);
-    }
-    // ★重要：届いた「割合（%）」を、自分の碁盤サイズ（px）に逆算
-    // 碁盤のインスタンス（goban）から、現在のサイズと位置を取得
-    const actualX = percentageX * goban.sizex + goban.px;
-    const actualY = percentageY * goban.sizey + goban.py;
-    const offsetX = cursor.offsetWidth / 2;
-    const offsetY = cursor.offsetHeight / 2;
-    const transformValue = `translate(${actualX - offsetX}px, ${actualY - offsetY}px)`;
-    
-    if(cursor.style.visibility === "hidden"){
-        cursor.style.transition = "none";
-        cursor.style.transform = transformValue;
-        cursor.style.visibility = "visible";
-
-        // ブラウザに「今の状態」を強制的に認識させる（リフローのトリガー）
-        // これをしないと、transition: none と後の設定が同時に処理されてアニメーションが消えません
-        void cursor.offsetHeight; 
-
-        // 次のフレームで通常のトランジションに戻す
-        cursor.style.transition = "";
-    }else{
-        cursor.style.transform = transformValue;
-    }
-}
-function removeRemoteCursor(socketId) {
-    const cursor = remoteCursors[socketId]; 
-    if (cursor) {
-        cursor.remove();
-        delete remoteCursors[socketId];
-    }
-}
-function hideRemoteCursor(socketId) {
-    const cursor = remoteCursors[socketId];
-    if (cursor) {
-        cursor.style.visibility = "hidden";
-    }
-}
-
 function toggle_muteAudio(stream) {
     const audioTrack = stream.getAudioTracks()[0]
     audioTrack.enabled = !audioTrack.enabled
@@ -682,9 +552,7 @@ function toggle_muteAudio(stream) {
 }
 
 function mainloop(){
-    if(goban){
-        goban.draw();
-    }
+    boardManager.drawAll();
     requestAnimationFrame(mainloop)
 }
 
