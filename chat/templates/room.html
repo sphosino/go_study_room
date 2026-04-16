@@ -13,7 +13,6 @@
 {% block body %}
 
 	<div class="room-layout flex flex-col gap-6 mx-auto w-full items-start xl:flex-row">
-
 		<div id="board-main" class="w-full">
 			<div id = "position"></div>
 			<div id = "captures"></div>
@@ -40,16 +39,17 @@
 				</form>
 			</dialog>
 			<div id = "board"></div>
+
+		</div>
+		<div class="room-chat-column min-w-0 w-full">
+			<h2>【{{ room.id }}番部屋  {{room.name}}】 {{user.account_id}} </h2>
+			{% include 'chat.html' %}
+			{% include 'userlist.html' %}
 			<div>
 				<h1>WebRTC P2P </h1>
 				<audio id = "remoteAudio" controls autoplay></audio>
 				<button id = 'myvoice-toggle'>自分の音声のミュート切り替え</button>
 			</div>
-		</div>
-				<div class="room-chat-column min-w-0 w-full">
-			<h2>【{{ room.id }}番部屋  {{room.name}}】 {{user.account_id}} </h2>
-			{% include 'chat.html' %}
-			{% include 'userlist.html' %}
 		</div>
 
 	</div>
