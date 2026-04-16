@@ -549,6 +549,7 @@ function toggle_muteAudio(stream) {
     const value = audioTrack.enabled ? "音声が再開されました" : "音声がミュートされました"
     console.log(value)
     toggle_muteAudioButton.textContent = value
+    toggle_muteAudioButton.classList.toggle('muted', !audioTrack.enabled)
 }
 
 function mainloop(){

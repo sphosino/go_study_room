@@ -14,8 +14,8 @@
         <h2>部屋のリスト</h2>
         <div id = "room-list"></div>
         <div class="flex gap-4">
-            <button id="room-list-update">部屋更新！</button>
-            <button id="make-room-submit">新規作成！</button>
+            <button id="room-list-update" class="btn-primary">部屋更新</button>
+            <button id="make-room-submit" class="btn-primary">新規作成</button>
         </div>
         {% if messages %}
         <ul class="messages">
@@ -35,8 +35,8 @@
                 <input type="checkbox" id="notify_on_create" checked>
                 この部屋の作成を通知する
                 </label>
-                <button value = "make-room-submit" form = "make-room-form">作成！</button>
-                <button value = "make-room-cancel">閉じる</button>
+                <button value = "make-room-submit" form = "make-room-form" class="btn-primary">作成！</button>
+                <button value = "make-room-cancel" class="btn-primary">閉じる</button>
                 </div>
             </form>
         </dialog>

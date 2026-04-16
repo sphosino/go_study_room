@@ -13,9 +13,7 @@
 	display:block
 }
 
-#chat-message-submit{
-	color:#000000;
-}
+/* ===== ボードモード・アクションボタンは base.css の .btn-primary / .btn-mute を使用 ===== */
 
 #board-main{
 	flex: 0 1 400px;

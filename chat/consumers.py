@@ -482,7 +482,8 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
     async def send_existing_boards(self):
         @database_sync_to_async
         def get_boards():
-            boards = list(GoBoard.objects.filter(room=self.room_id))
+            # 再入室時も作成順で復元できるように順序を固定する
+            boards = list(GoBoard.objects.filter(room=self.room_id).order_by('id'))
             print(f"取得したboard数: {len(boards)}") 
             return boards
 
