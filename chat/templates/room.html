@@ -15,8 +15,12 @@
 	<div class="room-layout flex flex-col gap-6 mx-auto w-full items-start xl:flex-row">
 		
 		<div id="board-main" class="w-full">
-			<div id = "position"></div>
-			<div id = "captures"></div>
+
+			<div>
+				<audio id = "remoteAudio" controls autoplay></audio>
+				<button id = 'myvoice-toggle'>自分の音声のミュート切り替え</button>
+			</div>
+
 			<button type = "button" id = "makeboard">碁盤作成</button>
 			<div id="board-mode-controls" class="board-mode-controls">
 				<button type="button" id="board-mode-alternating" data-board-mode="alternating">交互着手</button>
@@ -46,11 +50,6 @@
 			<h2>【{{ room.id }}番部屋  {{room.name}}】 {{user.account_id}} </h2>
 			{% include 'chat.html' %}
 			{% include 'userlist.html' %}
-			<div>
-				<h1>WebRTC P2P </h1>
-				<audio id = "remoteAudio" controls autoplay></audio>
-				<button id = 'myvoice-toggle'>自分の音声のミュート切り替え</button>
-			</div>
 		</div>
 
 	</div>
