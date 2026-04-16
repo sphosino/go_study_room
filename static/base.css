@@ -22,7 +22,7 @@ h2{
 }
 
 a,button{
-    color: #2563eb !important;
+    color: #2563eb;
 }
 a:hover,button:hover{
     opacity: 0.7;

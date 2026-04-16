@@ -88,6 +88,27 @@
 #makeboard{
 	display:block;
 	margin-bottom:12px;
+	padding:8px 20px;
+	border:2px solid #4a7c59;
+	background:linear-gradient(180deg, #2e7d52 0%, #1b5e38 100%);
+	color:#ffffff;
+	font-weight:700;
+	font-size:1rem;
+	border-radius:10px;
+	cursor:pointer;
+	box-shadow:0 2px 6px rgba(27,94,56,0.35), 0 1px 0 rgba(255,255,255,0.15) inset;
+	letter-spacing:0.03em;
+	transition:transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+#makeboard:hover{
+	background:linear-gradient(180deg, #3a9464 0%, #256b47 100%);
+	border-color:#2e7d52;
+	box-shadow:0 4px 12px rgba(27,94,56,0.45), 0 1px 0 rgba(255,255,255,0.2) inset;
+	transform:translateY(-1px);
+}
+#makeboard:active{
+	transform:translateY(0);
+	box-shadow:0 1px 3px rgba(27,94,56,0.3);
 }
 #position,
 #captures{
