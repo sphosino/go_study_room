@@ -18,7 +18,7 @@
 <a href="{% url 'user_profile:user_top' user.id %}">Mypage</a>
 </div>
 {% if user.is_staff %}
-	<br><a href="admin">管理画面</a>
+	<a href="admin">管理画面</a>
 	{% endif %}
 	<form method = "post" action = "{% url 'accounts:logout' %}">
 		{% csrf_token %}
