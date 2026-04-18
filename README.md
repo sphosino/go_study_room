@@ -2,7 +2,7 @@
 
 ## デモ
 
-🔗 https://chat-project-red-waterfall-3034.fly.dev
+🔗 [囲碁検討室](https://chat-project-red-waterfall-3034.fly.dev)
 
 ## 機能
 
@@ -24,7 +24,7 @@ Frontend: JavaScript, HTML/CSS, Tailwind CSS
 
 ## スクリーンショット
 
-（今度追加）
+![開発中画面](./screenshot.png)
 
 ## ローカルでの起動方法
 
