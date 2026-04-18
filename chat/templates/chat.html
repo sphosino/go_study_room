@@ -3,20 +3,14 @@
 <h2>チャット</h2>
 <div id="chat-log"></div>
 	<form id="chat-form" action = "" enctype="multipart/form-data">
-		<div class="flex gap-3">
-			<p class="control">
-				<input class="input border" id="chat-message-input" autocomplete="off" type="text" aria-label="メッセージ" placeholder="メッセージを入力">
-				<button class="button" id="emoji-button" type= "button">😊</button>
-				<div class="file file-icon">
-					<label class="cursor-pointer" title="画像を選択">
-						<input class="file-input hidden" type='file' id="image-input" accept="image/*" >
-						<i class="fa-regular fa-image"></i>
-					</label>
-				</div>
-			</p>
-			<p class="control">
-				<button id="chat-message-submit" class="btn-primary" type="button">送信</button>
-			</p>
+		<div class="flex items-center gap-1">
+			<input class="input border flex-1 min-w-0" id="chat-message-input" autocomplete="off" type="text" aria-label="メッセージ" placeholder="メッセージを入力">
+			<button class="button" id="emoji-button" type="button">😊</button>
+			<label class="cursor-pointer" title="画像を選択">
+				<input class="file-input hidden" type='file' id="image-input" accept="image/*" >
+				<i class="fa-regular fa-image"></i>
+			</label>
+			<button id="chat-message-submit" class="btn-primary" type="button">送信</button>
 		</div>
 	</form>
 </section>
