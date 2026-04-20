@@ -1,23 +1,117 @@
 {% extends "base.html" %}
-    {% block header %}
-    {% load static %}
-    {{ VAPID_PUBLIC_KEY|json_script:"VAPID_PUBLIC_KEY" }}
-    {% endblock %}
-    {% block body %}
-<h1>{{ user.account_id }}</h1>
-<h2>
-</h2>
+{% block header %}
+{% load static %}
+{{ VAPID_PUBLIC_KEY|json_script:"VAPID_PUBLIC_KEY" }}
+{% endblock %}
+{% block body %}
 {% if is_owner %}
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ profile_form.as_p }}
-    <hr>
-    <h3>通知設定</h3>
-    {{ user_form.as_p}}
-    <button type="submit" class="btn-primary">保存</button>
-</form>
+<div class="profile-edit-shell">
+    <div class="profile-edit-hero">
+        <div>
+            <p class="profile-edit-eyebrow">プロフィール編集</p>
+            <h1 class="profile-edit-title">{{ user.account_id }}さんの設定</h1>
+            <p class="profile-edit-subtitle">公開プロフィール、メールアドレス、通知設定をここでまとめて変更できます。</p>
+        </div>
+        <div class="profile-edit-summary">
+            <div class="profile-edit-summary-label">現在の登録メール</div>
+            <div class="profile-edit-summary-value">{{ user.email|default:"未登録" }}</div>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="profile-edit-form">
+        {% csrf_token %}
+
+        {% if profile_form.non_field_errors or user_form.non_field_errors %}
+        <div class="form-error-banner">
+            {{ profile_form.non_field_errors }}
+            {{ user_form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <section class="profile-edit-section">
+            <div class="profile-edit-section-head">
+                <h2>公開プロフィール</h2>
+                <p>プロフィール画面に表示される内容です。</p>
+            </div>
+
+            <div class="profile-edit-grid">
+                <div class="profile-edit-field profile-edit-field-wide">
+                    <label for="{{ profile_form.bio.id_for_label }}">{{ profile_form.bio.label }}</label>
+                    {{ profile_form.bio }}
+                    {% if profile_form.bio.help_text %}
+                    <p class="field-help">{{ profile_form.bio.help_text }}</p>
+                    {% endif %}
+                    {% for error in profile_form.bio.errors %}
+                    <p class="field-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+
+                <div class="profile-edit-field profile-edit-field-wide">
+                    <label for="{{ profile_form.avatar.id_for_label }}">{{ profile_form.avatar.label }}</label>
+                    <div class="profile-edit-file-row">
+                        {{ profile_form.avatar }}
+                        {% if user.profile.avatar %}
+                        <a href="{{ user.profile.avatar.url }}" target="_blank" rel="noreferrer">現在の画像を見る</a>
+                        {% endif %}
+                    </div>
+                    {% for error in profile_form.avatar.errors %}
+                    <p class="field-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <section class="profile-edit-section">
+            <div class="profile-edit-section-head">
+                <h2>アカウント</h2>
+                <p>ログインに関わる基本情報です。</p>
+            </div>
+
+            <div class="profile-edit-grid">
+                <div class="profile-edit-field">
+                    <label>ユーザー名</label>
+                    <div class="profile-edit-static">{{ user.account_id }}</div>
+                </div>
+
+                <div class="profile-edit-field">
+                    <label for="{{ user_form.email.id_for_label }}">{{ user_form.email.label }}</label>
+                    {{ user_form.email }}
+                    {% if user_form.email.help_text %}
+                    <p class="field-help">{{ user_form.email.help_text }}</p>
+                    {% endif %}
+                    {% for error in user_form.email.errors %}
+                    <p class="field-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <section class="profile-edit-section">
+            <div class="profile-edit-section-head">
+                <h2>通知設定</h2>
+                <p>部屋作成通知とブラウザ通知の有効化を管理します。</p>
+            </div>
+
+            <label class="profile-edit-toggle" for="{{ user_form.notify_room_create.id_for_label }}">
+                <span>
+                    <strong>{{ user_form.notify_room_create.label }}</strong>
+                    <small>オンにすると、初回のみブラウザ通知の許可を求めます。</small>
+                </span>
+                {{ user_form.notify_room_create }}
+            </label>
+            {% for error in user_form.notify_room_create.errors %}
+            <p class="field-error">{{ error }}</p>
+            {% endfor %}
+        </section>
+
+        <div class="profile-edit-actions">
+            <a href="{% url 'user_profile:user_top' user.id %}" class="btn-link">戻る</a>
+            <button type="submit" class="btn-primary">保存</button>
+        </div>
+    </form>
+</div>
 {% else %}
-    <p>このプロフィールは編集できません。</p>
+<p>このプロフィールは編集できません。</p>
 {% endif %}
 
 <script type="module">

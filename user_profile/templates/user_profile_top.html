@@ -4,6 +4,9 @@
 {% endblock %}
 {% block body %}
 	<h1>{{ user.account_id }}さんのプロフィール</h1>
+	{% if user.email %}
+	<div class="profile-email">メールアドレス: {{ user.email }}</div>
+	{% endif %}
 	<div class="profile">{{ user.profile.bio }}</div>
 	{% if user.profile.avatar %}
 	<img src = "{{ user.profile.avatar.url }}">

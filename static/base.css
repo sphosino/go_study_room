@@ -154,10 +154,341 @@ input[type="number"]:focus {
     box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
 }
 
-input[type="text"], textarea, .profile {/* テキスト入力と、プロフィール表示 */
+input[type="text"], input[type="email"], textarea, .profile {/* テキスト入力と、プロフィール表示 */
     border: 1px solid #ccc;
     padding: 8px;
     border-radius: 4px;
     width: 100%;
     box-sizing: border-box;
+}
+input[type="email"],
+input[type="text"],
+textarea,
+input[type="file"] {
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+input[type="email"]:focus,
+input[type="text"]:focus,
+textarea:focus,
+input[type="file"]:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.16);
+    background: #ffffff;
+}
+
+.profile-edit-shell {
+    display: grid;
+    gap: 20px;
+}
+
+.profile-edit-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 18px 20px;
+    border: 1px solid #dbeafe;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 65%, #ecfeff 100%);
+}
+
+.profile-edit-eyebrow {
+    margin: 0 0 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #2563eb;
+}
+
+.profile-edit-title {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.profile-edit-subtitle {
+    margin: 10px 0 0;
+    max-width: 42rem;
+    color: #475569;
+    line-height: 1.7;
+}
+
+.profile-edit-summary {
+    min-width: 220px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.78);
+    border: 1px solid rgba(148,163,184,0.28);
+}
+
+.profile-edit-summary-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.profile-edit-summary-value {
+    margin-top: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    word-break: break-word;
+}
+
+.profile-edit-form {
+    display: grid;
+    gap: 18px;
+}
+
+.profile-edit-section {
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(15,23,42,0.04);
+}
+
+.profile-edit-section-head {
+    margin-bottom: 16px;
+}
+
+.profile-edit-section-head h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.profile-edit-section-head p {
+    margin: 6px 0 0;
+    color: #64748b;
+    line-height: 1.6;
+}
+
+.profile-edit-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.profile-edit-field {
+    display: grid;
+    gap: 8px;
+}
+
+.profile-edit-field-wide {
+    grid-column: 1 / -1;
+}
+
+.profile-edit-field label {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #334155;
+}
+
+.profile-edit-static {
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 600;
+}
+
+.profile-edit-file-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.profile-edit-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid #dbeafe;
+    border-radius: 14px;
+    background: #f8fbff;
+}
+
+.profile-edit-toggle strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #0f172a;
+}
+
+.profile-edit-toggle small {
+    color: #64748b;
+    line-height: 1.6;
+}
+
+.profile-edit-toggle input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: #2563eb;
+    flex: none;
+}
+
+.profile-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+}
+
+.field-help {
+    margin: 0;
+    font-size: 0.84rem;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.field-error,
+.errorlist {
+    margin: 0;
+    color: #b91c1c;
+    font-size: 0.88rem;
+    font-weight: 600;
+    list-style: none;
+    padding-left: 0;
+}
+
+.form-error-banner {
+    padding: 12px 14px;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+@media (max-width: 768px) {
+    .profile-edit-hero {
+        flex-direction: column;
+    }
+
+    .profile-edit-summary {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .profile-edit-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-edit-toggle,
+    .profile-edit-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .profile-edit-actions .btn-primary,
+    .profile-edit-actions .btn-link {
+        text-align: center;
+    }
+}
+
+.auth-entrance {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px;
+    border: 1px solid #dbeafe;
+    border-radius: 20px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.auth-entrance-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.auth-entrance-title {
+    margin: 16px 0 10px;
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: #0f172a;
+}
+
+.auth-entrance-text {
+    margin: 0;
+    color: #475569;
+    line-height: 1.8;
+}
+
+.auth-provider-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 22px 0;
+    padding: 16px 18px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: #ffffff;
+}
+
+.auth-provider-mark {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f97316 0%, #facc15 100%);
+    color: #ffffff;
+    font-size: 1.2rem;
+    font-weight: 800;
+    box-shadow: 0 10px 24px rgba(249, 115, 22, 0.24);
+}
+
+.auth-provider-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.auth-provider-meta {
+    margin-top: 4px;
+    font-size: 0.88rem;
+    color: #64748b;
+}
+
+.auth-entrance-form {
+    margin-top: 10px;
+}
+
+.auth-entrance-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+@media (max-width: 768px) {
+    .auth-entrance {
+        padding: 20px;
+    }
+
+    .auth-entrance-title {
+        font-size: 1.55rem;
+    }
+
+    .auth-entrance-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .auth-entrance-actions .btn-link,
+    .auth-entrance-actions .btn-primary {
+        text-align: center;
+    }
 }

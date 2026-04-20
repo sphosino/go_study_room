@@ -14,7 +14,16 @@ class ProfileEditForm(forms.ModelForm):
 class UserNotifyForm(forms.ModelForm):
     class Meta:
         model = CustomUser
-        fields = ['notify_room_create']
+        fields = ['email', 'notify_room_create']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['email'].label = "メールアドレス"
+        self.fields['email'].help_text = "Googleログイン連携に使います（任意）"
+
+    def clean_email(self):
+        email = (self.cleaned_data.get('email') or '').strip().lower()
+        return email or None
 
 class AccountDeleteForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput, label="パスワード確認")

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="auth-entrance auth-entrance-social">
+    <div class="auth-entrance-badge">Googleログイン</div>
+
+    {% if process == "connect" %}
+    <h1 class="auth-entrance-title">{{ provider.name }} を連携します</h1>
+    <p class="auth-entrance-text">
+        現在のアカウントに、{{ provider.name }} の外部アカウントを新しく連携します。
+    </p>
+    {% else %}
+    <h1 class="auth-entrance-title">{{ provider.name }} でサインインします</h1>
+    <p class="auth-entrance-text">
+        {{ provider.name }} アカウントを使って囲碁検討室にログインします。問題なければ続行してください。
+    </p>
+    {% endif %}
+
+    <div class="auth-provider-card">
+        <div class="auth-provider-mark" aria-hidden="true">G</div>
+        <div>
+            <div class="auth-provider-name">{{ provider.name }}</div>
+            <div class="auth-provider-meta">安全な認証画面に移動します</div>
+        </div>
+    </div>
+
+    <form method="post" class="auth-entrance-form">
+        {% csrf_token %}
+        {% if form %}
+            {% for hidden in form.hidden_fields %}
+                {{ hidden }}
+            {% endfor %}
+        {% endif %}
+        {% if redirect_field_value %}
+        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+        {% endif %}
+
+        <div class="auth-entrance-actions">
+            <a href="{% url 'accounts:login' %}" class="btn-link">戻る</a>
+            <button type="submit" class="btn-primary">続行する</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

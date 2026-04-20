@@ -20,13 +20,13 @@
 		</div>
 	{% endfor %}
     <div class="flex gap-3">
-        <button type="submit">ログイン</button>
-        <a href="{% url 'accounts:index' %}">戻る</a>
+		<button type="submit" class="btn-primary">ログイン</button>
+		<a href="{% url 'accounts:index' %}" class="btn-link">戻る</a>
     </div>
 </form>
 
 <div class="mt-4">
-	<a href="{% provider_login_url 'google' %}">Googleでログイン</a>
+	<a href="{% provider_login_url 'google' %}" class="btn-link">Googleでログイン</a>
 </div>
 
 
