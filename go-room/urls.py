@@ -9,6 +9,7 @@ from django.views.generic.base import RedirectView
 urlpatterns = [
     path('admin/', admin.site.urls         ),
 	path(''      , include("accounts.urls")),
+    path('oauth/', include('allauth.urls')),
 	path('chat/'  , include("chat.urls")    ),
     path('user_profile/', include("user_profile.urls")),
     path('sw.js', service_worker, name='sw'),

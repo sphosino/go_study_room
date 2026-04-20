@@ -6,6 +6,7 @@ dj-database-url==2.2.0
 Django==5.1
 django-cloudinary-storage==0.3.0
 django-cors-headers==4.5.0
+django-allauth==65.8.1
 gunicorn==23.0.0
 pillow==10.4.0
 psycopg2==2.9.9
@@ -16,3 +17,4 @@ whitenoise==6.7.0
 python-dotenv
 py-vapid
 pywebpush
+PyJWT==2.9.0

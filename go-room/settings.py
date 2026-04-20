@@ -24,10 +24,15 @@ INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
+    'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
 	'corsheaders',
 	'channels',
+	'allauth',
+	'allauth.account',
+	'allauth.socialaccount',
+	'allauth.socialaccount.providers.google',
 	'chat',
 	'accounts',
 	'user_profile',
@@ -43,6 +48,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware'
 ]
@@ -133,7 +139,35 @@ LOGOUT_REDIRECT_URL = "accounts:login"
 AUTHENTICATION_BACKENDS = [
     'accounts.backends.AccountIDBackend',  # カスタムバックエンド
     'django.contrib.auth.backends.ModelBackend',  # デフォルトバックエンド
+    'allauth.account.auth_backends.AuthenticationBackend',
 ]
+
+SITE_ID = 1
+
+ACCOUNT_USER_MODEL_USERNAME_FIELD = 'account_id'
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_LOGIN_METHODS = {'email', 'username'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'account_id*', 'password1*', 'password2*']
+
+SOCIALACCOUNT_ADAPTER = 'accounts.adapters.CustomSocialAccountAdapter'
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+    }
+}
+
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
+if GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET:
+    SOCIALACCOUNT_PROVIDERS['google']['APP'] = {
+        'client_id': GOOGLE_CLIENT_ID,
+        'secret': GOOGLE_CLIENT_SECRET,
+        'key': '',
+    }
 
 ASGI_APPLICATION = 'go-room.asgi.application'
 ###　Redisを使用する場合の設定
