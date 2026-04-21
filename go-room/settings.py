@@ -268,6 +268,9 @@ STORAGES = {
 VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY")
 VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY")
 
+# ICE/TURNサーバー設定（JSON配列として環境変数から取得）
+ICE_SERVERS_JSON = os.environ.get('ICE_SERVERS_JSON', '')
+
 # HTTPS/セキュリティ設定
 if not DEBUG:
     SECURE_SSL_REDIRECT = False  # Fly.dev ではプロキシが HTTPS を処理するため不要

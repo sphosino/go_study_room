@@ -6,6 +6,7 @@
 	{% load static %}
 		<link rel="stylesheet" href = "{% static 'chat/css/room.css' %}">
 		<script> window.roomid = parseInt("{{ room.id }}"); </script>
+		<script> window.iceServers = {{ ice_servers_json|safe }}; </script>
 		<script src="{% static 'chat/js/room.js' %}?v={% now 'U' %}" type = "module"></script>
 	{% endblock %}
 

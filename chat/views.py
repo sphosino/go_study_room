@@ -1,3 +1,4 @@
+import json
 from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
@@ -45,7 +46,16 @@ class RoomView(AsyncLoginRequiredMixin,View):
             messages.error(request, f"部屋番号 {roomid} は見つかりません。")
             return redirect('chat:lobby')
             
-        return await sync_to_async(render)(request, "room.html", {"room":room})
+        fallback = [{"urls": "stun:stun.l.google.com:19302"}]
+        raw = settings.ICE_SERVERS_JSON
+        try:
+            ice_servers = json.loads(raw) if raw else fallback
+        except (json.JSONDecodeError, ValueError):
+            ice_servers = fallback
+        return await sync_to_async(render)(request, "room.html", {
+            "room": room,
+            "ice_servers_json": json.dumps(ice_servers),
+        })
     
     async def post(self, request, roomid):
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':

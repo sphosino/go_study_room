@@ -235,25 +235,9 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
     }
 
     const configuration = {
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { 
-                urls: 'turn:openrelay.metered.ca:80',
-                username: 'openrelayproject',
-                credential: 'openrelayproject'
-            },
-            { 
-                urls: 'turn:openrelay.metered.ca:443',
-                username: 'openrelayproject',
-                credential: 'openrelayproject'
-            }
-        ],
+        iceServers: window.iceServers || [{ urls: 'stun:stun.l.google.com:19302' }],
         iceTransportPolicy: 'all',
         iceCandidatePoolSize: 10,
-        // ICE再接続の設定
-        iceCheckMinInterval: 500,  // ICEチェックの最小間隔
-        // 接続タイムアウトを長めに設定
-        iceCheckingTimeout: 15000  // ICEチェックのタイムアウト
     };
     socket.registerFunction('your_socket_id',(data)=>{
         console.log(`自分のsocket_idを取得しました -> ${data.socket_id}`)
