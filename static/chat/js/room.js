@@ -11,7 +11,7 @@ import MouseEventManager from "./managers/MouseEventManager.js";
 const boardManager = new BoardManager(); // 碁盤管理
 const cursorManager = new CursorManager(boardCanvas); // カーソル管理
 let boardMode = 'alternating';
-let iceCandidateQueue = []
+const iceCandidateQueues = {};
 let localStream
 const boardModeLabels = {
     alternating: '交互着手',
@@ -208,6 +208,32 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
     setBoardMode(boardMode);
 
     const peerConnections = {}; // ソケットIDごとにRTCPeerConnectionを保持するオブジェクト
+
+    function getIceQueue(socketId) {
+        if (!iceCandidateQueues[socketId]) {
+            iceCandidateQueues[socketId] = [];
+        }
+        return iceCandidateQueues[socketId];
+    }
+
+    async function flushIceCandidates(socketId) {
+        const peerConnection = peerConnections[socketId];
+        if (!peerConnection || !peerConnection.remoteDescription) {
+            return;
+        }
+
+        const queue = getIceQueue(socketId);
+        while (queue.length > 0) {
+            const candidate = queue.shift();
+            try {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                console.log(`Queued ICE candidate added for socket ${socketId}`);
+            } catch (error) {
+                console.error('Error adding queued ICE candidate:', error);
+            }
+        }
+    }
+
     const configuration = {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
@@ -357,6 +383,7 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
     function createNewRTCPeerConnection(socketId){
         const peerConnection = new RTCPeerConnection(configuration);
         peerConnections[socketId] = peerConnection;
+        getIceQueue(socketId);
 
         peerConnection.ontrack = event =>{
             console.log('ontrack')
@@ -368,6 +395,7 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
             if (peerConnection.connectionState === 'disconnected' || 
                 peerConnection.connectionState === 'closed') {
                 cursorManager.removeCursor(socketId);
+                delete iceCandidateQueues[socketId];
             }
         };
 
@@ -456,14 +484,9 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
         try {
             await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
             console.log('Setting remote description...completed');
+            await flushIceCandidates(socketId);
         } catch (error) {
             console.error('Error setting remote description:', error);
-        }
-        
-        while(iceCandidateQueue.length > 0){
-            console.log('キュー内のice候補処理中-handleAnswer')
-            const queue_candidate = iceCandidateQueue.shift()
-            handleIceCandidate(queue_candidate[0],queue_candidate[1])
         }
     }
     ////////////////////////////////////
@@ -482,16 +505,13 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
         console.log("before setRemoteDescription")
         await peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
         console.log("setRemoteDescription complated")
-        while(iceCandidateQueue.length >= 1){
-            console.log('キュー内のice候補処理中-handelOffer')
-            const queue_candidate = iceCandidateQueue.shift()
-            handleIceCandidate(queue_candidate[0],queue_candidate[1])
-        }
+        await flushIceCandidates(socketId);
         //ストリームを取得
         await getAudioStream();
         setStream(peerConnection)
         const answer = await peerConnection.createAnswer()
         await peerConnection.setLocalDescription(answer)
+        await flushIceCandidates(socketId);
 
         console.log('sendding answer -> ', socketId)
         socket.send(JSON.stringify({
@@ -504,18 +524,20 @@ initializeWebSocket("chat/" + window.roomid).then( async (socket) =>{
     function handleIceCandidate(socketId, candidate) {
         console.log('ICE候補ハンドラが呼ばれました')
         const peerConnection = peerConnections[socketId];
-    
-        if (peerConnection.signalingState === 'stable'){
-            peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
-                .then(() => {
-                    console.log(`ICE candidate added for socket ${socketId}`);
-                })
-                .catch(error => {
-                    console.error("Error adding ICE candidate:", error);
-                });
-        }else{
-            iceCandidateQueue.push([socketId,candidate])
+
+        if (!peerConnection || !peerConnection.remoteDescription) {
+            getIceQueue(socketId).push(candidate);
+            return;
         }
+
+        peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
+            .then(() => {
+                console.log(`ICE candidate added for socket ${socketId}`);
+            })
+            .catch(error => {
+                console.error("Error adding ICE candidate:", error);
+                getIceQueue(socketId).push(candidate);
+            });
     }
 
     processMessageQueue();
