@@ -1,17 +1,34 @@
 
-<section class="border-2 border-blue-500">
-<h2>チャット</h2>
-<div id="chat-log"></div>
-	<form id="chat-form" action = "" enctype="multipart/form-data">
-		<div class="flex items-center gap-1">
+<section class="info-panel chat-panel">
+	<div class="panel-heading">
+		<div class="panel-title-group">
+			<p class="panel-kicker">Realtime</p>
+			<h2>チャット</h2>
+			<p class="panel-description">対局中の相談や共有メモを、流れを止めずに残せます。</p>
+		</div>
+		<div class="panel-actions">
+			<span class="chat-status-badge">常時接続</span>
+		</div>
+	</div>
+	<div class="chat-log-frame">
+		<div class="chat-log-meta">
+			<p class="chat-log-caption">共有ログ</p>
+			<p class="chat-log-hint">Enterで送信できます。絵文字や画像もそのまま添付できます。</p>
+		</div>
+		<div id="chat-log" class="chat-log" aria-live="polite"></div>
+	</div>
+	<form id="chat-form" class="chat-compose" action="" enctype="multipart/form-data">
+		<label class="chat-compose-label" for="chat-message-input">メッセージ入力</label>
+		<div class="chat-compose-row">
 			<input class="input border flex-1 min-w-0" id="chat-message-input" autocomplete="off" type="text" aria-label="メッセージ" placeholder="メッセージを入力">
-			<button class="button" id="emoji-button" type="button">😊</button>
-			<label class="cursor-pointer" title="画像を選択">
-				<input class="file-input hidden" type='file' id="image-input" accept="image/*" >
+			<button class="chat-emoji-button" id="emoji-button" type="button" aria-label="絵文字を追加">😊</button>
+			<label class="chat-image-trigger" title="画像を選択">
+				<input class="file-input hidden" type="file" id="image-input" accept="image/*">
 				<i class="fa-regular fa-image"></i>
 			</label>
 			<button id="chat-message-submit" class="btn-primary" type="button">送信</button>
 		</div>
+		<p class="chat-compose-help">参考図や気づいたポイント、検討用のURLをまとめて残せます。</p>
 	</form>
 </section>
 
