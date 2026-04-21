@@ -5,15 +5,21 @@
 {% block body %}
 	
 {% if is_owner %}
-	<h1>{{ user.account_id }}さんのアカウントを削除します</h1>
-	<hr>
-	<a id="delete_button">削除</a>
+	<section class="delete-account-shell">
+		<div class="delete-account-badge">Danger Zone</div>
+		<h1 class="delete-account-title">{{ user.account_id }}さんのアカウントを削除します</h1>
+		<p class="delete-account-text">プロフィール、通知設定、関連データをこのアカウントから削除します。完了後は元に戻せません。</p>
+		<div class="delete-account-actions">
+			<a href="{% url 'user_profile:user_top' user.id %}" class="btn-link">戻る</a>
+			<button id="delete_button" class="delete-account-trigger" type="button">削除を続ける</button>
+		</div>
+	</section>
 	<dialog id = "delete-user-modal" >
-		<div>本当に削除しますか？</div>
-		<div>元に戻すことはできません</div>
+		<p>本当に削除しますか？</p>
+		<div class="delete-account-warning">元に戻すことはできません。</div>
 		<form method="dialog" id = "delete-user-form" class="flex flex-col gap-2">
-			<button value = "ok" type="submit">アカウントを削除する</button>
-			<button value = "cancel" type="submit">やめる</button>
+			<button value = "ok" type="submit" class="delete-account-confirm">アカウントを削除する</button>
+			<button value = "cancel" type="submit" class="btn-link">やめる</button>
 		</form>
 	</dialog>
 	<form id="real-delete-form" method="POST" action="{% url 'user_profile:user_del' user.id %}">
@@ -21,15 +27,22 @@
 	</form>
 	<script>
 		const modal = document.querySelector("#delete-user-modal");
+		const deleteButton = document.querySelector("#delete_button");
 		modal.addEventListener("close",function(){
 			if(modal.returnValue === "ok"){
 				document.querySelector("#real-delete-form").submit();
 			}
-		})
-		document.querySelector("#delete_button").onclick = modal.showModal();
+		});
+		deleteButton.addEventListener("click", function(){
+			modal.showModal();
+		});
 	</script>
 {% else %}
-	<h1>無効なページ</h1>
+	<section class="delete-account-shell">
+		<div class="delete-account-badge">Access</div>
+		<h1 class="delete-account-title">無効なページ</h1>
+		<p class="delete-account-text">このアカウント削除ページにはアクセスできません。</p>
+	</section>
 {% endif %}
 
 {% endblock %}

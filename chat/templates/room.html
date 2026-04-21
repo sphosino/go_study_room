@@ -15,14 +15,37 @@
 
 	<div class="room-layout flex flex-col gap-6 mx-auto w-full items-start xl:flex-row">
 		
-		<div id="board-main" class="w-full">
-
-			<div>
-				<audio id = "remoteAudio" controls autoplay></audio>
-				<button id = 'myvoice-toggle' class="btn-mute">自分の音声のミュート切り替え</button>
+		<section id="board-main" class="info-panel room-board-panel w-full">
+			<div class="panel-heading">
+				<div class="panel-title-group">
+					<p class="panel-kicker">Board</p>
+					<h2>{{ room.name }}</h2>
+					<p class="panel-description">盤面を共有しながら、音声とチャットでそのまま検討できます。</p>
+				</div>
+				<div class="panel-actions room-meta-badges">
+					<span class="room-meta-badge">部屋 {{ room.id }}</span>
+					<span class="room-meta-badge">参加中 {{ user.account_id }}</span>
+				</div>
 			</div>
 
-			<button type = "button" id = "makeboard">碁盤作成</button>
+			<div class="room-audio-panel">
+				<div class="room-audio-copy">
+					<p class="chat-log-caption">音声通話</p>
+					<p class="chat-log-hint">相手の音声を確認しながら、必要に応じて自分のマイクをミュートできます。</p>
+				</div>
+				<div class="room-audio-controls">
+					<audio id = "remoteAudio" controls autoplay></audio>
+					<button id = 'myvoice-toggle' class="btn-mute" type="button">自分の音声のミュート切り替え</button>
+				</div>
+			</div>
+
+			<div class="room-board-toolbar">
+				<div class="room-board-toolbar-copy">
+					<p class="chat-log-caption">盤面操作</p>
+					<p class="chat-log-hint">検討用の碁盤を作成し、操作モードを切り替えながら共有できます。</p>
+				</div>
+				<button type = "button" id = "makeboard">碁盤作成</button>
+			</div>
 			<div id="board-mode-controls" class="board-mode-controls">
 				<button type="button" id="board-mode-alternating" data-board-mode="alternating">交互着手</button>
 				<button type="button" id="board-mode-setup-black" data-board-mode="setup_black">置き石 黒</button>
@@ -35,26 +58,29 @@
 			</div>
 			<dialog id = "make-board-modal">
 				<p>碁盤のサイズを決めてね</p>
-				<form method = "dialog" id = "make-board-form">
-					<label for = "input-boardx">横</label><input type="number" id="input-boardx" min="1" max="19" value = "13">
-					<label for = "input-boardy">縦</label><input type="number" id="input-boardy" min="1" max="19" value = "13">
+				<form method = "dialog" id = "make-board-form" class="room-board-form">
+					<div class="room-board-form-grid">
+						<label for = "input-boardx">横</label><input type="number" id="input-boardx" min="1" max="19" value = "13">
+						<label for = "input-boardy">縦</label><input type="number" id="input-boardy" min="1" max="19" value = "13">
+					</div>
 					<div class="flex justify-end gap-3">
 					<button value = "make-board-submit" form = "make-board-form" class="btn-primary">作成</button>
 					<button value = "make-board-cancel" class="btn-primary">閉じる</button>
 					</div>
 				</form>
 			</dialog>
-			<div id = "board"></div>
-		</div>
+			<div class="room-board-surface">
+				<div id = "board"></div>
+			</div>
+		</section>
 
 		<div class="room-chat-column min-w-0 w-full">
-			<h2>【{{ room.id }}番部屋  {{room.name}}】 {{user.account_id}} </h2>
 			{% include 'chat.html' %}
 			{% include 'userlist.html' %}
 		</div>
 
 	</div>
 
-	<div><a href = "{% url 'chat:lobby' %}">ロビーに戻る</a></div>
+	<div class="room-back-link"><a href = "{% url 'chat:lobby' %}">ロビーに戻る</a></div>
 
 {% endblock %}

@@ -11,22 +11,77 @@
 {% block body %}
 {% if user.is_authenticated %}
 
-<h2>Welcome {{ user.account_id }}</h2>
-<hr>
-<a href="{% url 'chat:lobby' %}">ロビーに行く</a>
-<div>
-<a href="{% url 'user_profile:user_top' user.id %}">Mypage</a>
-</div>
-{% if user.is_staff %}
-	<a href="admin">管理画面</a>
-	{% endif %}
-	<form method = "post" action = "{% url 'accounts:logout' %}">
+<div class="home-shell">
+	<section class="home-hero">
+		<div class="home-hero-copy">
+			<p class="home-kicker">Welcome Back</p>
+			<h2 class="home-title">{{ user.account_id }}さん、検討を再開しましょう</h2>
+			<p class="home-description">ロビーで部屋を探したり、マイページでプロフィールや通知設定を整えたりできます。</p>
+		</div>
+		<div class="home-hero-summary">
+			<div class="home-summary-label">現在の状態</div>
+			<div class="home-summary-value">サインイン中</div>
+		</div>
+	</section>
+
+	<section class="home-grid">
+		<section class="info-panel home-panel">
+			<div class="panel-heading">
+				<div class="panel-title-group">
+					<p class="panel-kicker">Play</p>
+					<h2>ロビーへ</h2>
+					<p class="panel-description">募集中の部屋を確認し、会話や盤面共有をすぐ始められます。</p>
+				</div>
+			</div>
+			<div class="home-actions">
+				<a href="{% url 'chat:lobby' %}" class="btn-primary">ロビーに行く</a>
+			</div>
+		</section>
+
+		<section class="info-panel home-panel">
+			<div class="panel-heading">
+				<div class="panel-title-group">
+					<p class="panel-kicker">Profile</p>
+					<h2>マイページ</h2>
+					<p class="panel-description">プロフィール、メールアドレス、通知設定を確認できます。</p>
+				</div>
+			</div>
+			<div class="home-actions">
+				<a href="{% url 'user_profile:user_top' user.id %}" class="btn-link">Mypage</a>
+			</div>
+		</section>
+
+		{% if user.is_staff %}
+		<section class="info-panel home-panel">
+			<div class="panel-heading">
+				<div class="panel-title-group">
+					<p class="panel-kicker">Admin</p>
+					<h2>管理メニュー</h2>
+					<p class="panel-description">管理画面でユーザーやデータの状態を確認できます。</p>
+				</div>
+			</div>
+			<div class="home-actions">
+				<a href="admin" class="btn-link">管理画面</a>
+			</div>
+		</section>
+		{% endif %}
+	</section>
+
+	<form method = "post" action = "{% url 'accounts:logout' %}" class="home-logout-form">
 		{% csrf_token %}
 		<button type="submit" class="btn-link">ログアウト</button>
 	</form>
+</div>
 {% else %}
-	<a href="{% url 'accounts:login' %}">ログイン</a>
-	<a href="{% url 'accounts:signup' %}">アカウント作成</a>
+	<section class="auth-entrance home-guest-card">
+		<div class="auth-entrance-badge">Start</div>
+		<h2 class="auth-entrance-title">囲碁検討室へようこそ</h2>
+		<p class="auth-entrance-text">ログインすると、部屋の作成、チャット、盤面共有、通知設定をまとめて利用できます。</p>
+		<div class="auth-entrance-actions">
+			<a href="{% url 'accounts:login' %}" class="btn-primary">ログイン</a>
+			<a href="{% url 'accounts:signup' %}" class="btn-link">アカウント作成</a>
+		</div>
+	</section>
 {% endif %}
 
 {% endblock %}

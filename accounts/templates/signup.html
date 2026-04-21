@@ -1,23 +1,27 @@
 {% extends "base.html" %}
 
 {% block body %}
-<h2>アカウント作成</h2>
-<form method = "post">
-	{% csrf_token %}
-	{% for field in form %}
-		<div class="flex gap-3">
+<section class="auth-entrance">
+	<div class="auth-entrance-badge">Signup</div>
+	<h2 class="auth-entrance-title">アカウントを作成</h2>
+	<p class="auth-entrance-text">ユーザー名とログイン情報を登録すると、検討室の作成やプロフィール管理が使えるようになります。</p>
+
+	<form method = "post" class="auth-entrance-form auth-form-grid">
+		{% csrf_token %}
+		{% for field in form %}
+		<div class="auth-field">
+			<label for="{{ field.id_for_label }}">{{ field.label }}</label>
+			{{ field }}
 			{% if field.help_text %}
-				<div title="{{ field.help_text }}">
-					{{ field.label_tag }}
-					{{field}}
-				</div>
-			{% else %}
-				{{ field.label_tag }}
-				{{ field }}
+			<p class="field-help">{{ field.help_text }}</p>
 			{% endif %}
 			{{ field.errors }}
 		</div>
-	{% endfor %}
-	<button>作成！</button>
-</form>
+		{% endfor %}
+		<div class="auth-entrance-actions">
+			<a href="{% url 'accounts:index' %}" class="btn-link">戻る</a>
+			<button type="submit" class="btn-primary">作成</button>
+		</div>
+	</form>
+</section>
 {% endblock %}

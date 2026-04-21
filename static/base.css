@@ -1,6 +1,10 @@
 /* 全体フォント */
 body {
     font-family: "Noto Sans JP", sans-serif;
+    background:
+        radial-gradient(circle at top, rgba(186, 230, 253, 0.32), transparent 36%),
+        linear-gradient(180deg, #f8fbff 0%, #f8fafc 100%);
+    color: #0f172a;
 }
 
 /* タイトル統一 */
@@ -14,6 +18,32 @@ body {
     font-size: 0.9rem;
     color: #666;
     margin-top: 30px;
+}
+
+.site-shell {
+    min-height: 100vh;
+}
+
+.site-frame {
+    border: 1px solid rgba(219, 234, 254, 0.95);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.1);
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(8px);
+}
+
+.site-title {
+    margin-bottom: 1.75rem;
+}
+
+.site-content {
+    display: grid;
+    gap: 18px;
+}
+
+.site-footer hr {
+    margin: 0 0 14px;
+    border: 0;
+    border-top: 1px solid #e2e8f0;
 }
 
 /*-------------------------------------------*/
@@ -646,6 +676,26 @@ input[type="file"]:focus {
     margin-top: 10px;
 }
 
+.auth-form-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.auth-field {
+    display: grid;
+    gap: 8px;
+}
+
+.auth-field label {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #334155;
+}
+
+.auth-secondary-action {
+    margin-top: 18px;
+}
+
 .auth-entrance-actions {
     display: flex;
     justify-content: flex-end;
@@ -669,5 +719,263 @@ input[type="file"]:focus {
     .auth-entrance-actions .btn-link,
     .auth-entrance-actions .btn-primary {
         text-align: center;
+    }
+}
+
+.home-shell {
+    display: grid;
+    gap: 20px;
+}
+
+.home-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    padding: 22px 24px;
+    border: 1px solid #dbeafe;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 60%, #ecfeff 100%);
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+}
+
+.home-hero-copy {
+    display: grid;
+    gap: 8px;
+}
+
+.home-kicker {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #2563eb;
+}
+
+.home-title {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.2;
+}
+
+.home-description {
+    margin: 0;
+    max-width: 42rem;
+    color: #475569;
+    line-height: 1.8;
+}
+
+.home-hero-summary {
+    min-width: 180px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.8);
+    border: 1px solid rgba(148,163,184,0.28);
+}
+
+.home-summary-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.home-summary-value {
+    margin-top: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.home-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.home-panel {
+    margin-top: 0;
+}
+
+.home-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.home-logout-form {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.home-guest-card {
+    max-width: 720px;
+}
+
+@media (max-width: 768px) {
+    .home-hero {
+        flex-direction: column;
+    }
+
+    .home-hero-summary {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .home-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .home-logout-form {
+        justify-content: stretch;
+    }
+
+    .home-logout-form .btn-link {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+.profile-view-shell {
+    display: grid;
+    gap: 20px;
+}
+
+.profile-view-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 18px 20px;
+    border: 1px solid #dbeafe;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 65%, #ecfeff 100%);
+}
+
+.profile-view-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(260px, 0.9fr);
+    gap: 18px;
+}
+
+.profile-view-bio {
+    white-space: pre-wrap;
+    line-height: 1.8;
+    color: #334155;
+}
+
+.profile-view-avatar {
+    display: block;
+    width: min(100%, 220px);
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 24px;
+    border: 1px solid #dbeafe;
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+}
+
+.profile-view-avatar-placeholder {
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, #2563eb 0%, #0f766e 100%);
+    color: #ffffff;
+    font-size: 3rem;
+    font-weight: 800;
+}
+
+.delete-account-shell {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px;
+    border: 1px solid #fecaca;
+    border-radius: 20px;
+    background: linear-gradient(180deg, #ffffff 0%, #fff7f7 100%);
+    box-shadow: 0 18px 40px rgba(127, 29, 29, 0.08);
+}
+
+.delete-account-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #fee2e2;
+    color: #b91c1c;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.delete-account-title {
+    margin: 16px 0 10px;
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: #7f1d1d;
+}
+
+.delete-account-text,
+.delete-account-warning {
+    color: #7f1d1d;
+    line-height: 1.8;
+}
+
+.delete-account-warning {
+    margin-bottom: 16px;
+}
+
+.delete-account-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+}
+
+.delete-account-trigger,
+.delete-account-confirm {
+    border: 1px solid #b91c1c;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(185, 28, 28, 0.18);
+}
+
+.delete-account-trigger {
+    padding: 8px 14px;
+}
+
+.delete-account-confirm {
+    padding: 9px 14px;
+}
+
+.delete-account-trigger:hover,
+.delete-account-confirm:hover {
+    opacity: 1;
+    background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
+    box-shadow: 0 12px 24px rgba(185, 28, 28, 0.22);
+}
+
+@media (max-width: 768px) {
+    .profile-view-hero {
+        flex-direction: column;
+    }
+
+    .profile-view-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .delete-account-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .delete-account-actions .btn-link,
+    .delete-account-trigger {
+        text-align: center;
+        width: 100%;
     }
 }

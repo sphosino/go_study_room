@@ -2,32 +2,33 @@
 {% load socialaccount %}
 
 {% block body %}
-<h2>ログイン</h2>
-<form method="post">
-    {% csrf_token %}
-    {% for field in form %}
-		<div class="flex gap-3">
+<section class="auth-entrance">
+	<div class="auth-entrance-badge">Login</div>
+	<h2 class="auth-entrance-title">アカウントにログイン</h2>
+	<p class="auth-entrance-text">登録済みアカウントでログインして、ロビー、盤面共有、通知設定を利用できます。</p>
+
+	<form method="post" class="auth-entrance-form auth-form-grid">
+		{% csrf_token %}
+		{% for field in form %}
+		<div class="auth-field">
+			<label for="{{ field.id_for_label }}">{{ field.label }}</label>
+			{{ field }}
 			{% if field.help_text %}
-				<div title="{{ field.help_text }}">
-					{{field.label_tag }}
-					{{field}}
-				</div>
-			{% else %}
-				{{ field.label_tag }}
-				{{ field }}
+			<p class="field-help">{{ field.help_text }}</p>
 			{% endif %}
 			{{ field.errors }}
 		</div>
-	{% endfor %}
-    <div class="flex gap-3">
-		<button type="submit" class="btn-primary">ログイン</button>
-		<a href="{% url 'accounts:index' %}" class="btn-link">戻る</a>
-    </div>
-</form>
+		{% endfor %}
+		<div class="auth-entrance-actions">
+			<a href="{% url 'accounts:index' %}" class="btn-link">戻る</a>
+			<button type="submit" class="btn-primary">ログイン</button>
+		</div>
+	</form>
 
-<div class="mt-4">
-	<a href="{% provider_login_url 'google' %}" class="btn-link">Googleでログイン</a>
-</div>
+	<div class="auth-secondary-action">
+		<a href="{% provider_login_url 'google' %}" class="btn-link">Googleでログイン</a>
+	</div>
+</section>
 
 
 {% endblock %}

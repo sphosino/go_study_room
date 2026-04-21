@@ -20,17 +20,17 @@
 </head>
 <body class="min-h-screen">
 	<main>
-    <div class="flex justify-start md:justify-center py-10">
-        <div class="bg-white shadow-xl p-8 rounded-lg max-w-4xl w-full mx-4">
-            <h1 class="title text-center text-3xl font-bold mb-6">
+    <div class="site-shell flex justify-start md:justify-center py-10">
+        <div class="site-frame bg-white shadow-xl p-8 rounded-lg max-w-4xl w-full mx-4">
+            <h1 class="title site-title text-center text-3xl font-bold mb-6">
                 囲碁検討室
             </h1>
 			
-            <div class="container">
+			<div class="container site-content">
 				{% block body %}
 				{% endblock %}
 			</div>
-			<div class = "footer">
+			<div class = "footer site-footer">
 				<hr>
 				<a href = "{% url 'accounts:index' %} ">topに戻る</a>
 			</div>

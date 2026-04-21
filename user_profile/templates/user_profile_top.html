@@ -3,20 +3,49 @@
 {% load static %}
 {% endblock %}
 {% block body %}
-	<h1>{{ user.account_id }}さんのプロフィール</h1>
-	{% if user.email %}
-	<div class="profile-email">メールアドレス: {{ user.email }}</div>
-	{% endif %}
-	<div class="profile">{{ user.profile.bio }}</div>
-	{% if user.profile.avatar %}
-	<img src = "{{ user.profile.avatar.url }}">
-	{% endif %}
-{% if is_owner %}
-	<hr>
-	<a href = "{% url 'user_profile:user_edit' user.id %}">編集</a>
-	<hr>
-	<a href = "{% url 'user_profile:user_del' user.id %}">アカウントを削除</a>
-{% endif %}
+	<div class="profile-view-shell">
+		<section class="profile-view-hero">
+			<div>
+				<p class="profile-edit-eyebrow">プロフィール</p>
+				<h1 class="profile-edit-title">{{ user.account_id }}さんのプロフィール</h1>
+				<p class="profile-edit-subtitle">公開プロフィールと登録情報を確認できます。</p>
+			</div>
+			<div class="profile-edit-summary">
+				<div class="profile-edit-summary-label">登録メール</div>
+				<div class="profile-edit-summary-value">{{ user.email|default:"未登録" }}</div>
+			</div>
+		</section>
+
+		<section class="profile-view-grid">
+			<section class="profile-edit-section profile-view-main">
+				<div class="profile-edit-section-head">
+					<h2>自己紹介</h2>
+					<p>プロフィール画面で公開される内容です。</p>
+				</div>
+				<div class="profile-view-bio">{{ user.profile.bio|default:"まだ自己紹介は登録されていません。" }}</div>
+			</section>
+
+			<section class="profile-edit-section profile-view-side">
+				<div class="profile-edit-section-head">
+					<h2>アイコン</h2>
+					<p>プロフィール画像として表示されます。</p>
+				</div>
+				{% if user.profile.avatar %}
+				<img class="profile-view-avatar" src = "{{ user.profile.avatar.url }}" alt="{{ user.account_id }}のプロフィール画像">
+				{% else %}
+				<div class="profile-view-avatar profile-view-avatar-placeholder">{{ user.account_id|first|upper }}</div>
+				{% endif %}
+			</section>
+		</section>
+
+		{% if is_owner %}
+		<div class="profile-edit-actions">
+			<a href = "{% url 'user_profile:user_top' user.id %}" class="btn-link">再読み込み</a>
+			<a href = "{% url 'user_profile:user_edit' user.id %}" class="btn-primary">編集</a>
+			<a href = "{% url 'user_profile:user_del' user.id %}" class="btn-link">アカウントを削除</a>
+		</div>
+		{% endif %}
+	</div>
 
 
 {% endblock %}
