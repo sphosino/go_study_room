@@ -43,10 +43,13 @@ export default class CursorManager {
             return;
         }
 
-        // キャンバスのオフセットを取得
-        const canvasOffset = this._getCanvasOffset(goban);
-        const actualX = percentageX * goban.sizex + goban.px + canvasOffset.x;
-        const actualY = percentageY * goban.sizey + goban.py + canvasOffset.y;
+        const metrics = this._getCursorMetrics(goban);
+        if (!metrics) {
+            return;
+        }
+
+        const actualX = percentageX * metrics.width + metrics.offsetX;
+        const actualY = percentageY * metrics.height + metrics.offsetY;
 
         this._animateCursor(cursor, actualX, actualY);
     }
@@ -69,13 +72,24 @@ export default class CursorManager {
      * キャンバスのオフセットを取得
      * @private
      */
-    _getCanvasOffset(goban) {
-        if (!goban.canvas) {
-            return { x: 0, y: 0 };
+    _getCursorMetrics(goban) {
+        const canvas = goban.canvas;
+        if (!canvas) {
+            return null;
         }
+
+        const canvasRect = canvas.getBoundingClientRect();
+        const containerRect = this.boardCanvas.getBoundingClientRect();
+
+        if (!canvasRect.width || !canvasRect.height) {
+            return null;
+        }
+
         return {
-            x: goban.canvas.offsetLeft,
-            y: goban.canvas.offsetTop,
+            offsetX: canvasRect.left - containerRect.left,
+            offsetY: canvasRect.top - containerRect.top,
+            width: canvasRect.width,
+            height: canvasRect.height,
         };
     }
 

@@ -30,6 +30,7 @@
 	display:block;
 	width:100%;
 	height:auto;
+	touch-action:none;
 }
 .board-mode-controls{
 	display:grid;
