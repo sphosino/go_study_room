@@ -270,7 +270,7 @@ VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY")
 
 # HTTPS/セキュリティ設定
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
+    SECURE_SSL_REDIRECT = False  # Fly.dev ではプロキシが HTTPS を処理するため不要
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_PROXY_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
