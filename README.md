@@ -15,7 +15,7 @@ Backend: Django, Django Channels, Daphne
 Frontend: JavaScript, HTML/CSS, Tailwind CSS  
 リアルタイム通信: WebSocket, WebRTC  
 プッシュ通知: PWA（Web Push API）  
-インフラ: fly.io / Cloudinary（画像）/ Upstash（Redis）/ Neon(データベース)  
+インフラ: fly.io / Cloudinary（画像）/ Upstash（Redis）/ Neon(データベース)  / metered.ca(turn server)
 データベース: PostgreSQL
 
 ## スクリーンショット
