@@ -929,6 +929,20 @@ input[type="file"]:focus {
     margin-bottom: 16px;
 }
 
+.delete-account-dialog-form {
+    width: 100%;
+    padding-inline: 12px;
+}
+
+.delete-account-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    margin-bottom: 16px;
+}
+
 .delete-account-actions {
     display: flex;
     justify-content: flex-end;
@@ -975,6 +989,16 @@ input[type="file"]:focus {
     .delete-account-actions {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .delete-account-dialog-actions {
+        justify-content: stretch;
+    }
+
+    .delete-account-dialog-actions .btn-link,
+    .delete-account-dialog-actions .delete-account-confirm {
+        text-align: center;
+        width: 100%;
     }
 
     .delete-account-actions .btn-link,

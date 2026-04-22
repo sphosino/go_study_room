@@ -17,9 +17,11 @@
 	<dialog id = "delete-user-modal" >
 		<p>本当に削除しますか？</p>
 		<div class="delete-account-warning">元に戻すことはできません。</div>
-		<form method="dialog" id = "delete-user-form" class="flex flex-col gap-2">
-			<button value = "ok" type="submit" class="delete-account-confirm">アカウントを削除する</button>
-			<button value = "cancel" type="submit" class="btn-link">やめる</button>
+		<form method="dialog" id = "delete-user-form" class="delete-account-dialog-form">
+			<div class="delete-account-dialog-actions">
+				<button value = "ok" type="submit" class="delete-account-confirm">アカウントを削除する</button>
+				<button value = "cancel" type="submit" class="btn-link">やめる</button>
+			</div>
 		</form>
 	</dialog>
 	<form id="real-delete-form" method="POST" action="{% url 'user_profile:user_del' user.id %}">
