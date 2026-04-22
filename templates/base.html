@@ -15,6 +15,13 @@
 	<meta name="theme-color" content="#092E20">
 	<meta name="mobile-web-app-capable" content="yes">
 	<link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
+	<script>
+	window.APP_DEBUG = {{ APP_DEBUG|yesno:"true,false" }};
+	if (!window.APP_DEBUG) {
+		console.log = function () {};
+		console.info = function () {};
+	}
+	</script>
 	{% block header %}
 	{% endblock %}
 </head>
@@ -39,7 +46,7 @@
 	<script>
 	if ('serviceWorker' in navigator) {
 		navigator.serviceWorker.register('/sw.js')
-		.then(reg => console.log('SW registered'))
+		.then(reg => window.APP_DEBUG && console.log('SW registered'))
 		.catch(err => console.error('SW error', err));
 	}
 	</script>

@@ -1,4 +1,12 @@
 const CACHE_NAME = 'django-pwa-v2'; // バージョンを上げて古いキャッシュを捨てやすくします
+const DEBUG = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
+
+function debugLog(...args) {
+  if (DEBUG) {
+    console.log(...args);
+  }
+}
+
 const ASSETS = [
   '/',
   '/static/base.css',
@@ -19,10 +27,10 @@ const ASSETS = [
 
 // --- 1. インストールと更新の強制 ---
 self.addEventListener('install', event => {
-  console.log('Service Worker: Installing...');
+  debugLog('Service Worker: Installing...');
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      console.log('Service Worker: Caching Assets');
+      debugLog('Service Worker: Caching Assets');
       return cache.addAll(ASSETS);
     })
   );
@@ -30,13 +38,13 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  console.log('Service Worker: Activated');
+  debugLog('Service Worker: Activated');
   event.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(
         keys.map(key => {
           if (key !== CACHE_NAME) {
-            console.log('Service Worker: Clearing Old Cache', key);
+            debugLog('Service Worker: Clearing Old Cache', key);
             return caches.delete(key);
           }
         })

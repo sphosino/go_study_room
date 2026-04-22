@@ -6,7 +6,11 @@ import os
 from copy import deepcopy
 from io import BytesIO
 from django.core.files.base import ContentFile
+import logging
 # Create your models here.
+
+
+logger = logging.getLogger(__name__)
 
 
 class ChatRoom(models.Model):
@@ -39,7 +43,7 @@ class ChatImage(models.Model):
     def generate_thumbnail(self):
         img = Image.open(self.image)
         width, height = img.size
-        print("保存された画像の大きさ＝", width, height)
+        logger.debug("Saved image size width=%s height=%s", width, height)
 
         thumb_name, thumb_extension = os.path.splitext(os.path.basename(self.image.name))
         thumb_extension = thumb_extension.lower()
@@ -277,8 +281,8 @@ class GoBoard(models.Model):
                     )
                 )
                 
-            
-            print(captured_stones)
+
+            logger.debug("Captured stones candidate: %s", captured_stones)
 
         self.board[y][x] = EMPTY #忘れずに戻すよ
 
@@ -318,7 +322,7 @@ class GoBoard(models.Model):
         self.koTurn = self.koY = self.koX = -1
 
         if len(captured_stones) == 1:
-            print(captured_stones)
+            logger.debug("Checking ko state with captured stones: %s", captured_stones)
             if len(self.check_kakomi(captured_stones[0][0],captured_stones[0][1], GoBoard.get_opponent_turn(turn))) == 1:
                 self.koY = captured_stones[0][0]
                 self.koX = captured_stones[0][1]

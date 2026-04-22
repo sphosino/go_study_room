@@ -14,6 +14,9 @@ from django.contrib.auth.decorators import login_required
 from accounts.models import PushSubscription
 import json
 from django.conf import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 class IndexView(TemplateView):
     template_name = "index.html"
@@ -29,21 +32,22 @@ class IndexView(TemplateView):
             return context
 
 class SignupView(CreateView):
-	template_name = "signup.html"
-	form_class = SignUpForm
-	success_url = reverse_lazy("accounts:index")
-	def form_valid(self,form):
-		response = super().form_valid(form)
-		user = authenticate(
-			account_id = form.cleaned_data.get("account_id"),
-			password = form.cleaned_data.get("password1")
-		)
-		if user is not None:
-			login(self.request, user)
-			print("User logged in:", self.request.user.is_authenticated)  # ログイン後の状態を確認
-		else:
-			print("Authentication failed.")
-		return response
+    template_name = "signup.html"
+    form_class = SignUpForm
+    success_url = reverse_lazy("accounts:index")
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        user = authenticate(
+            account_id=form.cleaned_data.get("account_id"),
+            password=form.cleaned_data.get("password1")
+        )
+        if user is not None:
+            login(self.request, user)
+            logger.info("User logged in: %s", self.request.user.is_authenticated)
+        else:
+            logger.warning("Authentication failed during signup auto-login.")
+        return response
 	
 class CustomLoginView(LoginView):
 	form_class = LoginForm
@@ -91,7 +95,7 @@ def save_subscription(request):
                 "auth": keys.get("auth"),
             }
         )
-        print("subscription saved:", endpoint)
+        logger.info("Push subscription saved for user_id=%s", request.user.id)
         return JsonResponse({"status": "ok"})
 
     return JsonResponse({"error": "invalid"}, status=400)

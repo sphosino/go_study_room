@@ -40,9 +40,9 @@ WORKER_INTERVAL = 40  # 秒
 _global_monitor_task = None #ワーカーのタスクを保持する変数
 
 if created:
-    print("新しくロビーを作成しました！")
+    logger.info("Global lobby created.")
 else:
-    print("既に存在していたので、既存のものを取得しました。")
+    logger.debug("Global lobby already existed.")
 
 class SendMethodMixin():
 
@@ -86,7 +86,7 @@ class SendMethodMixin():
         previous_messages = await get_previous_messages(room_id, message_limit, time)
 
         for message in previous_messages:
-            print(f"過去メッセージ -> {message}")
+            logger.debug("Sending previous message: %s", message)
             await self.send_message(
                 'chat',
                 **message
@@ -228,7 +228,7 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
                                 if status in [404,410]:
                                     sub.delete()
 
-                print(text_data_json['notify'])
+                logger.debug("Room create notify flag: %s", text_data_json['notify'])
                 if text_data_json['notify']:
                     await send_push_notifications()
 
@@ -484,11 +484,11 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
         def get_boards():
             # 再入室時も作成順で復元できるように順序を固定する
             boards = list(GoBoard.objects.filter(room=self.room_id).order_by('id'))
-            print(f"取得したboard数: {len(boards)}") 
+            logger.debug("Fetched boards for room %s: %s", self.room_id, len(boards))
             return boards
 
         boards = await get_boards()
-        print(f"送信するboard数: {len(boards)}")
+        logger.debug("Sending existing boards for room %s: %s", self.room_id, len(boards))
         for board in boards:
             board_payload = board.serialize_for_client()
             board_payload["y"] = board.y
@@ -522,7 +522,7 @@ async def manage_user_in_chatroom(self, room_id, action):
 
 
 async def user_list_update(socket, room_id, message_type):
-    print("user_list_update() called.")
+    logger.debug("user_list_update called for room %s", room_id)
     @database_sync_to_async
     def get_user_list():
         try:
@@ -532,7 +532,7 @@ async def user_list_update(socket, room_id, message_type):
             logger.info(f"ChatRoom with id {room_id} does not exist")
             return []
     user_list_ids = [[user.account_id, user.id] for user in await get_user_list()]
-    print(user_list_ids)
+    logger.debug("user_list_update result for room %s: %s", room_id, user_list_ids)
     await socket.send_message(
         message_type,
         userlist = user_list_ids
@@ -577,56 +577,51 @@ def count_user_sockets(socket_id):
     return Sockets.objects.filter(socket_id=socket_id).count()
 
 async def worker():
-    print("=== WORKER START ===")
+    logger.info("Ghost worker started.")
     
     iteration = 0
     while True:
         iteration += 1
-        print(f"\n--- ループ {iteration} 開始 ---")
+        logger.debug("Worker loop %s started.", iteration)
         
         try:
             # 1. ソケット取得
             sockets = await get_all_sockets()
-            print(f"取得ソケット数: {len(sockets)} インターバル: {WORKER_INTERVAL}秒")
+            logger.debug("Worker loop %s socket count=%s interval=%s", iteration, len(sockets), WORKER_INTERVAL)
             
             if not sockets:
                 break
             
-            print(f"{len(sockets)}個チェック開始...")
+            logger.debug("Worker loop %s checking sockets.", iteration)
             threshold = timezone.now() - timedelta(seconds=SOCKET_TIMEOUT)
             
             deleted_count = 0
             for s in sockets:
                 try:
-                    print(f"チェック: (timestamp: {s.timestamp})")
+                    logger.debug("Checking socket %s timestamp=%s", s.socket_id, s.timestamp)
                     
                     if s.timestamp < threshold:
                         # 1. ソケットに直接切断命令
-                        print(f"タイムアウト→ ソケットに切断命令送信: {s.socket_id}")
+                        logger.info("Socket timeout detected: %s", s.socket_id)
                         channel_layer = get_channel_layer()
                         await channel_layer.send(s.socket_id, {
                             "type": "force_close"
                         })
-                        print(f"→ 切断命令送信完了: {s.socket_id}")
+                        logger.debug("Force close sent to socket %s", s.socket_id)
                         # 2. データベースからソケット削除
-                        print(f"→ データベースから削除します: {s.socket_id}")
                         await delete_socket(s)
                         deleted_count += 1
-                        print("→ データベースから削除完了")
+                        logger.info("Socket deleted after timeout: %s", s.socket_id)
                         
                         # 残りソケット確認
                         remaining = await count_user_sockets(s.socket_id)
-                        print(f"残り: {remaining}")
-                    else:
-                        print(f"→ タイムアウトしていません")                        
+                        logger.debug("Remaining socket rows for %s: %s", s.socket_id, remaining)
                 except Exception as e:
-                    print(f"ソケット処理エラー: {e}")
                     logger.error(f"Socket error: {e}", exc_info=True)
             
-            print(f"ループ{iteration}完了: {deleted_count}個削除")
+            logger.debug("Worker loop %s completed. deleted=%s", iteration, deleted_count)
             
         except Exception as e:
-            print(f"ループ{iteration}全体エラー: {e}")
             logger.error(f"Worker loop error: {e}", exc_info=True)
 
         #####空部屋削除
@@ -647,4 +642,4 @@ async def worker():
 
         await asyncio.sleep(WORKER_INTERVAL)
     
-    print("=== WORKER END ===")
+    logger.info("Ghost worker ended.")

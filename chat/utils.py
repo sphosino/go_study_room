@@ -6,6 +6,9 @@ from .models import ChatImage
 import os
 from django.conf import settings
 from channels.db import database_sync_to_async
+import logging
+
+logger = logging.getLogger(__name__)
 
 async def handle_chat_message(request, roomid):
 
@@ -44,7 +47,7 @@ async def handle_chat_message(request, roomid):
 
         channel_layer = get_channel_layer()
         group_name = str(roomid)
-        print(thumbnail_url," ",image_url)
+        logger.debug("Chat image payload prepared. thumbnail=%s image=%s", thumbnail_url, image_url)
 
         # チャットメッセージをグループに送信
         await channel_layer.group_send(group_name,{
@@ -74,9 +77,9 @@ def cleanup_unused_files():
         if file_path not in db_image_paths and os.path.isfile(file_path):
             try:
                 os.remove(file_path)
-                print(f"{file_path} を削除しました。")
+                logger.info("Deleted unused image file: %s", file_path)
             except Exception as e:
-                print(f"ファイル削除に失敗しました: {e}")
+                logger.warning("Failed to delete image file %s: %s", file_path, e)
 
     # 2. サムネイルも同様に
     thumbnail_dir = os.path.join(settings.MEDIA_ROOT, 'chat_thumbnails/')
@@ -86,6 +89,6 @@ def cleanup_unused_files():
         if file_path not in db_thumbnail_paths and os.path.isfile(file_path):
             try:
                 os.remove(file_path)
-                print(f"{file_path} を削除しました。")
+                logger.info("Deleted unused thumbnail file: %s", file_path)
             except Exception as e:
-                print(f"ファイル削除に失敗しました: {e}")
+                logger.warning("Failed to delete thumbnail file %s: %s", file_path, e)

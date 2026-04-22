@@ -10,23 +10,21 @@
         return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
     }
     export async function registerPush(vapidkey) {
-        console.log("鍵の中身: [" + vapidkey + "]"); 
-    console.log("長さ: " + vapidkey.length);
         if (Notification.permission !== "granted") {
             return;
         }
         try {
             if (!("serviceWorker" in navigator)) {
-                console.log("SWなし");
+                console.warn("Service Worker is not available.");
                 return;
             }
             if (!("PushManager" in window)) {
-                console.log("PushManagerなし");
+                console.warn("PushManager is not available.");
                 return;
             }
 
             const registration = await navigator.serviceWorker.ready;
-            console.log("SW ready OK");
+            window.APP_DEBUG && console.log("SW ready OK");
 
             let subscription = await registration.pushManager.getSubscription();
 
@@ -35,9 +33,9 @@
 					userVisibleOnly: true,
 					applicationServerKey: urlBase64ToUint8Array(vapidkey)
 				});
-				console.log("新規subscribe")
+				window.APP_DEBUG && console.log("新規subscribe")
 			}else{
-				console.log("既存subscription再利用")
+				window.APP_DEBUG && console.log("既存subscription再利用")
 			}
 
             const res = await fetch("/api/save-subscription/", {
@@ -49,9 +47,9 @@
                 body: JSON.stringify(subscription)
             });
 
-            console.log("save status: " + res.status);
+            window.APP_DEBUG && console.log("save status: " + res.status);
 
         } catch (e) {
-            console.log("ERROR: " + e.message);
+            console.error("Push subscription registration failed:", e);
         }
     }
