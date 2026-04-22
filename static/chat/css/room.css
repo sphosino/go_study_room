@@ -249,13 +249,13 @@
 
 .room-board-form{
 	display: grid;
-	gap: 14px;
+	gap: 18px;
 }
 
 .room-board-form-grid{
 	display: grid;
 	grid-template-columns: auto 1fr;
-	gap: 12px 10px;
+	gap: 14px 12px;
 	align-items: center;
 }
 

@@ -149,7 +149,7 @@ button:hover{
 dialog {
     border: none;
     border-radius: 12px;
-    padding: 24px 28px;
+    padding: 32px 36px;
     min-width: 280px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10);
     background: #ffffff;

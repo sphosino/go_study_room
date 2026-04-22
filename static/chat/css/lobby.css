@@ -115,7 +115,7 @@
 
 .lobby-room-form{
 	display: grid;
-	gap: 14px;
+	gap: 18px;
 	min-width: min(100%, 420px);
 }
 
@@ -135,7 +135,7 @@
 	justify-content: space-between;
 	align-items: center;
 	gap: 16px;
-	padding: 14px 16px;
+	padding: 18px 20px;
 	border: 1px solid #dbeafe;
 	border-radius: 14px;
 	background: #f8fbff;
@@ -167,8 +167,9 @@
 .lobby-room-actions{
 	display: flex;
 	justify-content: flex-end;
-	gap: 10px;
+	gap: 12px;
 	flex-wrap: wrap;
+	margin-top: 4px;
 }
 
 @media (max-width: 640px){
