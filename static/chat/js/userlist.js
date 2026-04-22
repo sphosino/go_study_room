@@ -11,10 +11,8 @@ socket.registerFunction('leave', (data)=>{
 })
 userListUpdate.onclick = ()=>{user_list_update_socket(socket)}
 userlist_container.addEventListener('click',(event)=>{
-	console.log('リンクの親コンテナがクリックされたよ')
 	if (event.target.classList.contains('link-userlist')){
 		event.preventDefault();
-		console.log("リンクがクリックされたよ")
 		socket.send(JSON.stringify({
 			'client_message_type': 'get-user-page',
 			'userid': event.target.dataset.userId

@@ -23,14 +23,7 @@ import time
 from django.urls import reverse
 from django.http import JsonResponse
 
-""" この行をコメントアウトすれば、ロガーリストが見れます
-for logger_name in logging.root.manager.loggerDict:
-    print(logger_name)
-exit()
-#"""
-
 logger = logging.getLogger(__name__)
-logging.getLogger("daphne.ws_protocol").setLevel(logging.ERROR)
 
 GLOBAL_LOBBY, created = ChatRoom.objects.get_or_create(name='__system_lobby')
 GLOBAL_LOBBY_ID = GLOBAL_LOBBY.id
@@ -49,7 +42,7 @@ class SendMethodMixin():
     #全てのメッセージは最終的にこの関数からクライアントに送られる
     async def send_message_finally(self, event):
 
-        logger.info(event['server_message_type'])
+        logger.debug("send_message_finally: %s", event['server_message_type'])
 
         #サーバーからクライアントに送るメッセージにsenderとsocket_idがない場合は、送信者を現在のユーザー、socket_idを現在のソケットに設定する
         if not event.get('sender'):
@@ -63,7 +56,7 @@ class SendMethodMixin():
 
     #グループに送信
     async def send_message_to_group(self, server_message_type, **kwargs):
-        logger.info(f"sending messege for group ->  {kwargs}")
+        logger.debug("send_message_to_group: %s", server_message_type)
         await self.channel_layer.group_send(
             self.room_group_name,
             {

@@ -5,6 +5,9 @@ from django.http import HttpResponseForbidden
 from .forms import ProfileEditForm,UserNotifyForm
 from .models import Profile
 from django.conf import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 def topview(request, userid):
 	
@@ -18,7 +21,7 @@ def topview(request, userid):
 
 def delview(request, userid):
 
-	print('delview_called!')
+	logger.warning("delview called for userid=%s by user=%s", userid, request.user)
 
 	if request.method == 'POST':
 		user = get_user_model().objects.get(id = userid)

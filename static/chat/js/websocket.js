@@ -19,15 +19,15 @@ export async function initializeWebSocket(url){
         };
         
         websocket.onopen = () => {
-            console.log('WebSocket connection opened');
+            window.APP_DEBUG && console.log('WebSocket connection opened');
             resolve(websocket); // WebSocketの初期化が完了したらresolveを呼ぶ
         };
         websocket.onclose = (e) => {
             if (autoReconnect === false) {
-                console.warn(' Not attempting to reconnect.');
+                window.APP_DEBUG && console.warn('Not attempting to reconnect.');
                 return
             }
-            console.log('WebSocket connection closed. Attempting to reconnect...');
+            window.APP_DEBUG && console.log('WebSocket connection closed. Attempting to reconnect...');
             setTimeout(() => initializeWebSocket(url), 1000); // URLを保持しつつ1秒後に再接続
         };
 

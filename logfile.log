@@ -1,0 +1,2 @@
+[2026-04-22 11:18:39,509] ERROR chat.consumers: Push failed: WebPushException: Push failed: 400 Bad Request
+Response body:, Response 
