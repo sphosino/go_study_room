@@ -149,8 +149,11 @@ button:hover{
 dialog {
     border: none;
     border-radius: 12px;
-    padding: 32px 36px;
+    padding: 40px 32px;
     min-width: 280px;
+    max-width: 500px;
+    width: 90vw;
+    margin: auto;
     box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10);
     background: #ffffff;
 }
@@ -159,10 +162,11 @@ dialog::backdrop {
     backdrop-filter: blur(2px);
 }
 dialog p {
-    margin: 0 0 16px;
+    margin: 16px 0 28px 0;
     font-weight: 700;
     font-size: 1.05rem;
     color: #1e293b;
+    text-align: center;
 }
 dialog label {
     font-size: 0.9rem;
