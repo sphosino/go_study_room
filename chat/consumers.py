@@ -152,7 +152,7 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
         text_data_json = json.loads(text_data)
         client_message_type = text_data_json['client_message_type']
 
-        logger.info(f"lobby:{client_message_type}")
+        logger.debug("lobby: %s", client_message_type)
 
         await database_sync_to_async(Sockets.objects.filter(socket_id=self.channel_name).update)(timestamp=timezone.now())
 
@@ -160,7 +160,7 @@ class LobbyConsumer(AsyncWebsocketConsumer, SendMethodMixin):
 
             case 'get_lobby_id':
 
-                logger.info(f"{client_message_type} -> {GLOBAL_LOBBY_ID}")
+                logger.debug("%s -> %s", client_message_type, GLOBAL_LOBBY_ID)
                 await self.send_message(client_message_type, result = GLOBAL_LOBBY_ID)
                 
             case 'chat':
@@ -319,7 +319,7 @@ class RoomConsumer(AsyncWebsocketConsumer, SendMethodMixin):
 
         client_message_type = text_data_json['client_message_type']
 
-        logger.info(f"roomconsumer: {client_message_type}")
+        logger.debug("roomconsumer: %s", client_message_type)
 
         room_id = self.scope['url_route']['kwargs']['room_id']
 
