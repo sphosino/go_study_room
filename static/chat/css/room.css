@@ -250,6 +250,18 @@
 .room-board-form{
 	display: grid;
 	gap: 18px;
+	width: 100%;
+	margin: 0 auto;
+	padding-inline: 12px;
+}
+
+.room-board-actions{
+	display: flex;
+	justify-content: flex-end;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-top: 12px;
+	margin-bottom: 16px;
 }
 
 .room-board-form-grid{
@@ -321,6 +333,14 @@
 
 	#board canvas{
 		max-width: 100%;
+	}
+
+	.room-board-actions{
+		justify-content: stretch;
+	}
+
+	.room-board-actions .btn-primary{
+		width: 100%;
 	}
 
 	.room-board-form-grid{

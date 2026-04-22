@@ -151,8 +151,8 @@ dialog {
     border-radius: 12px;
     padding: 40px 32px;
     min-width: 280px;
-    max-width: 500px;
-    width: 90vw;
+    max-width: 420px;
+    width: min(88vw, 420px);
     margin: auto;
     box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10);
     background: #ffffff;
