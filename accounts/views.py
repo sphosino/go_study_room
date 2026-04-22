@@ -30,6 +30,10 @@ class IndexView(TemplateView):
             context['VAPID_PUBLIC_KEY'] = getattr(settings, 'VAPID_PUBLIC_KEY', '')
             return context
 
+
+class GuideView(TemplateView):
+    template_name = "guide.html"
+
 class SignupView(CreateView):
     template_name = "signup.html"
     form_class = SignUpForm

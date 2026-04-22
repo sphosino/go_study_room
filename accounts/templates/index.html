@@ -28,6 +28,19 @@
 		<section class="info-panel home-panel">
 			<div class="panel-heading">
 				<div class="panel-title-group">
+					<p class="panel-kicker">Guide</p>
+					<h2>使い方</h2>
+					<p class="panel-description">初めて使う方向けに、操作手順とFAQを1ページでまとめています。</p>
+				</div>
+			</div>
+			<div class="home-actions">
+				<a href="{% url 'accounts:guide' %}" class="btn-link">説明ページを見る</a>
+			</div>
+		</section>
+
+		<section class="info-panel home-panel">
+			<div class="panel-heading">
+				<div class="panel-title-group">
 					<p class="panel-kicker">Play</p>
 					<h2>ロビーへ</h2>
 					<p class="panel-description">募集中の部屋を確認し、会話や盤面共有をすぐ始められます。</p>
@@ -80,6 +93,7 @@
 		<div class="auth-entrance-actions">
 			<a href="{% url 'accounts:login' %}" class="btn-primary">ログイン</a>
 			<a href="{% url 'accounts:signup' %}" class="btn-link">アカウント作成</a>
+			<a href="{% url 'accounts:guide' %}" class="btn-link">使い方を見る</a>
 		</div>
 	</section>
 {% endif %}
