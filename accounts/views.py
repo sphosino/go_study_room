@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.views import LoginView, LogoutView
 from django.views.generic import TemplateView,CreateView

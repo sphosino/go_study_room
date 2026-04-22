@@ -9,7 +9,6 @@ import json
 from django.conf import settings
 from accounts.models import CustomUser, PushSubscription
 from pywebpush import webpush, WebPushException
-from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.core.exceptions import ObjectDoesNotExist
